@@ -1,10 +1,12 @@
 <?php
-require_once('ooWP_Query.class.php');
+
+namespace Outlandish\Oowp\PostType;
+use Outlandish\Oowp\Helpers\ArrayHelper;
+use Outlandish\Oowp\Helpers\OowpQuery;
+use Outlandish\Oowp\Oowp;
 
 /**
  * This class contains functions which are shared across all post types, and across all sites.
- * It should be extended for each site by e.g. oiPost or irrPost, which should in turn be extended by
- * individual post types e.g. irrEvent, irrShopItem
  *
  * These properties of WP_Post are proxied here.
  * @property int $ID;
@@ -34,14 +36,18 @@ require_once('ooWP_Query.class.php');
  * @property array $ancestors
  * @property string $page_template
  */
-abstract class ooPost
+abstract class Post
 {
+	/**
+	 * This must be overridden in subclasses
+	 */
+	protected static $postType = 'post';
 
 	protected $_cache = array();
 	protected static $_staticCache = array();
 
 	/**
-	 * @var WP_Post
+	 * @var \WP_Post
 	 */
 	protected $post;
 
@@ -61,16 +67,19 @@ abstract class ooPost
 	 * Converts the data into a wordpress post object
 	 * @static
 	 * @param mixed $data
-	 * @return WP_Post
+	 * @return \WP_Post
 	 */
 	public static function getPostObject($data)
 	{
+		// todo: rationalise this
 		if (is_array($data)) {
-			return new WP_Post((object)$data);
-		} else if (is_object($data) && $data instanceof WP_Post) {
-			return $data;
+			return new \WP_Post((object)$data);
 		} else if (is_object($data)) {
-			return new WP_Post($data);
+			if ($data instanceof \WP_Post) {
+				return $data;
+			} else {
+				return new \WP_Post($data);
+			}
 		} else if (is_numeric($data) && is_integer($data+0)) {
 			return get_post($data);
 		} else {
@@ -80,41 +89,9 @@ abstract class ooPost
 		}
 	}
 
-	/**
-	 * @static
-	 * Should be run with the wordpress init hook
-	 */
-	public static function init()
-	{
-		$className = get_called_class();
-		$class = new ReflectionClass($className);
-		if (!$class->isAbstract()) {
-			static::register();
-			add_filter('save_post' , function($postId, $postData) use ($className) {
-				if ($postData && $postData->post_type == $className::postType()) {
-					$post = ooPost::fetchById($postId);
-					if ($post) {
-						$post->onSave($postData);
-					}
-				}
-			}, '99', 2); // use high priority value to ensure this happens after acf finishes saving its metadata
-		}
+	public static function onRegistrationComplete() {
+		// do nothing
 	}
-
-	/**
-	 * @static
-	 * Should be run with the wordpress init hook
-	 */
-	public static function bruv()
-	{
-	}
-
-	/**
-	 * @static
-	 * Called after all oowp classes have been registered
-	 * @deprecated Replaced by bruv()
-	 */
-	public static function postRegistration() { /* do nothing by default */ }
 
 	/**
 	 * Override this to hook into the save event. This is called with low priority so
@@ -128,7 +105,7 @@ abstract class ooPost
 	 * @param $name
 	 * @param $args
 	 * @return mixed
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function __call($name, $args)
 	{
@@ -138,7 +115,6 @@ abstract class ooPost
 			$post = $this;
 			setup_postdata($this);
 			return call_user_func_array($name, $args);
-			wp_reset_postdata();
 		} elseif (function_exists("wp_" . $name)) {
 			$name = "wp_" . $name;
 			oofp('Using default wordpress function wp_' . $name . ' and global $post');
@@ -146,10 +122,9 @@ abstract class ooPost
 			$post = $this;
 			setup_postdata($this);
 			return call_user_func_array($name, $args);
-			wp_reset_postdata();
 		} else {
 			trigger_error('Attempt to call non existenty method ' . $name . ' on class ' . get_class($this));
-			//throw new Exception(sprintf('The required method "%s" does not exist for %s', $name, get_class($this)));
+			return null;
 		}
 	}
 
@@ -231,29 +206,13 @@ abstract class ooPost
 
 #region Default getters
 
-	protected static $postTypes = array();
-
 	/**
 	 * @static
-	 * @return string - the post name of this class derived from the classname
+	 * @return string - the post name of this class
 	 */
 	public static function postType()
 	{
-		$class = get_called_class();
-		if (!array_key_exists($class, static::$postTypes)) {
-			$postType = null;
-			if (preg_match('/([A-Z].*)/m', $class, $regs)) {
-				$match = $regs[1];
-				$postType = lcfirst(from_camel_case($match));
-			}
-			static::$postTypes[$class] = $postType;
-		}
-
-		$postType = static::$postTypes[$class];
-		if (!$postType) {
-			die('Invalid post type');
-		}
-		return $postType;
+		return static::$postType;
 	}
 
 	/**
@@ -302,10 +261,12 @@ abstract class ooPost
 	 * @deprecated Alias of connected
 	 */
 	public function getConnected($targetPostType, $single = false, $queryArgs = array(), $hierarchical = false){
+		// todo: move to another class
 		return $this->connected($targetPostType, $single, $queryArgs, $hierarchical);
 	}
 
 	public static function getConnectionName($targetType) {
+		// todo: move to another class
 		$types = array($targetType, self::postType());
 		sort($types);
 		return implode('_', $types);
@@ -315,20 +276,22 @@ abstract class ooPost
 	 * @param $posts array Array of posts/post ids
 	 */
 	public function connectAll($posts) {
+		// todo: move to another class
 		foreach ($posts as $post) {
 			$this->connect($post);
 		}
 	}
 
 	/**
-	 * @param $post int|object|ooPost
+	 * @param $post int|object|Post
 	 * @param array $meta
 	 */
 	public function connect($post, $meta = array()) {
-		$post = ooPost::createPostObject($post);
+		// todo: move to another class
+		$post = Post::createPostObject($post);
 		if ($post) {
 			$connectionName = self::getConnectionName($post->post_type);
-			/** @var P2P_Directed_Connection_Type $connectionType */
+			/** @var \P2P_Directed_Connection_Type $connectionType */
 			$connectionType = p2p_type($connectionName);
 			if ($connectionType) {
 				$p2pId = $connectionType->connect($this->ID, $post->ID);
@@ -344,10 +307,11 @@ abstract class ooPost
 	 * @param bool $single - just return the first/only post?
 	 * @param array $queryArgs - augment or overwrite the default parameters for the WP_Query
 	 * @param bool $hierarchical - if this is true the the function will return any post that is connected to this post *or any of its descendants*
-	 * @return null|ooPost|ooWP_Query
+	 * @return null|Post|OowpQuery
 	 */
 	public function connected($targetPostType, $single = false, $queryArgs = array(), $hierarchical = false)
 	{
+		// move to another class
 		$toReturn = null;
 		if (function_exists('p2p_register_connection_type')) {
 			if(!is_array($targetPostType)) {
@@ -386,7 +350,7 @@ abstract class ooPost
 			}
 
 			$queryArgs   = array_merge($defaults, $queryArgs);
-			$result = new ooWP_Query($queryArgs);
+			$result = new OowpQuery($queryArgs);
 
 			if ($hierarchical) { //filter out any duplicate posts
 				$post_ids = array();
@@ -422,6 +386,7 @@ abstract class ooPost
 
 	function getDescendants()
 	{
+		//todo
 		$posts = self::fetchAll();
 		$keyed = array();
 		foreach ($posts as $post) {
@@ -471,17 +436,6 @@ abstract class ooPost
 		return $meta;
 	}
 
-	/**
-	 *
-	 * @param $name
-	 * @param bool $single
-	 * @return array|string
-	 * @deprecated use ooPost::metadata() instead. Note change in default value for $single.
-	 */
-	public function getMetadata($name, $single = false) {
-		return $this->metadata($name, $single);
-	}
-
 	/***************************************************************************************************************************************
 	 *																																	   *
 	 *																  TEMPLATE HELPERS													   *
@@ -509,26 +463,19 @@ abstract class ooPost
 	}
 
 	/**
-	 * @deprecated Use ooPost#parent()
-	 */
-	public function getParent() {
-		return $this->parent();
-	}
-
-	/**
-	 * @return ooPost|null Get parent of post (or post type)
+	 * @return Post|null Get parent of post (or post type)
 	 */
 	public function parent() {
 		$parentId = !empty($this->post_parent) ? $this->post_parent : static::postTypeParentId();
 		return $this->getCacheValue() ?: $this->setCacheValue(
-			!empty($parentId) ? ooPost::fetchById($parentId) : null
+			!empty($parentId) ? Post::fetchById($parentId) : null
 		);
 	}
 
 	/**
 	 * @static
 	 * @return int returns the root parent type for posts.
-	 * If parent of a hierchical post type is a page, for example, this needs to be set to that ID
+	 * If parent of a hierarchical post type is a page, for example, this needs to be set to that ID
 	 */
 	public static function postTypeParentId(){
 		return 0;
@@ -551,25 +498,30 @@ abstract class ooPost
 	}
 
 	function excerpt($chars = 400, $stuff = null) {
-		(!empty($stuff) ?: $stuff = $this->content());
+		if (empty($stuff)) {
+			$stuff = $this->content();
+		}
 		$content = str_replace("<!--more-->", '<span id="more-1"></span>', $stuff);
 		//try to split on more link
 		$parts = preg_split('|<span id="more-\d+"></span>|i', $content);
 		$content = $parts[0];
 		$content = strip_tags($content);
+		$content = str_replace('&nbsp;', ' ',$content);
 		$excerpt = '';
-		$excerpt = '';
-		$sentences = array_filter(explode(" ", $content));
-		if($sentences){
-			foreach($sentences as $sentence){
-				if((strlen($excerpt) + strlen($sentence)) < $chars && $sentence){
-					$excerpt .= $sentence." ";
+
+		// try to split to the nearest paragraph
+		$paragraphs = array_filter(preg_split('/(\n)/', $content), function($a) { return trim($a) != ''; });
+		if($paragraphs){
+			foreach ($paragraphs as $paragraph) {
+				if((strlen($excerpt) + strlen($paragraph)) < $chars){
+					$excerpt .= $paragraph." ";
 				}else{
 					break;
 				}
 			}
 		}
 
+		// fall back on using individual words
 		if(!$excerpt){
 			$words = array_filter(explode(" ", $content));
 			if($words){
@@ -583,9 +535,12 @@ abstract class ooPost
 			}
 		}
 
-		$excerpt = trim(str_replace('&nbsp;', ' ',$excerpt));
-		if(preg_match('%\w|,|:%i', substr($excerpt, -1)))
+		$excerpt = trim($excerpt);
+
+		// add an ellipsis if the excerpt ends with a letter, comma or colon
+		if(preg_match('%\w|,|:%i', substr($excerpt, -1))) {
 			$excerpt = $excerpt."...";
+		}
 
 		return ($excerpt);
 	}
@@ -599,62 +554,72 @@ abstract class ooPost
 
 	/**
 	 * Fetches all posts (of any post_type) whose post_parent is this post, as well as
-	 * the root posts of any post_types whose declared postTypeParentId is this post
-	 * add 'post_type' to query args to only return certain post types for children
+	 * the root posts of any post_types whose declared postTypeParentId is this post.
+	 * add 'post_type' to query args to only return certain post types for children.
 	 * add 'post__not_in to query args to exclude certain pages based on id.
 	 * @param array $queryArgs
-	 * @return ooPost[]
+	 * @return OowpQuery|Post[]
 	 */
 	public function children($queryArgs = array())
 	{
+		// fetch the default children
+		$defaults = array('post_parent' => $this->ID, 'post_type'=>'any');
+		$queryArgs = wp_parse_args($queryArgs, $defaults);
+		$children = static::fetchAll($queryArgs);
+
+		$postTypes = $queryArgs['post_type'];
+
+		// merge in the roots of any post type whose parent is this post
+		if (!is_array($postTypes)) {
+			$postTypes = array($postTypes);
+		}
 		$posts = array();
-		$postTypes = (array_key_exists ('post_type', $queryArgs) ? $queryArgs['post_type'] : 'any');
-		unset($queryArgs['post_type']);
-		if (!is_array($postTypes)) $postTypes = array($postTypes);
-		foreach($this->childPostClassNames() as $className){
-			foreach($postTypes as $postType){
-				if($postType == 'any' || ($postType != 'none' && $this->theme()->postClass($postType) == $className)) {
-					$posts = array_merge($posts, $className::fetchRoots($queryArgs)->posts);
+		foreach($this->childPostTypes() as $postType=>$class){
+			foreach ($postTypes as $p) {
+				if ($p == 'any' || ($p != 'none' && $p == $postType)) {
+					$posts = array_merge($posts, $class::fetchRoots($queryArgs)->posts);
 				}
 			}
 		}
-		$defaults = array('post_parent' => $this->ID);
-		$queryArgs = wp_parse_args($queryArgs, $defaults);
-		$children = static::fetchAll($queryArgs);
 		$children->posts = array_merge($children->posts, $posts);
+		$children->post_count = count($children->posts);
 		return $children;
 	}
 
 	/**
-	 * @return array Class names of ooPost types having this object as their parent
+	 * @return array Class names of Post types having this object as their parent
 	 */
-	public function childPostClassNames()
+	public function childPostTypes()
 	{
-		global $_registeredPostClasses;
 		$names = array();
-		foreach ($_registeredPostClasses as $class) {
-			if ($class::postTypeParentId() == $this->ID) $names[] = $class;
+		foreach ($this->oowp()->postTypeMapping() as $postType=>$class) {
+			if ($class::postTypeParentId() == $this->ID) {
+				$names[$postType] = $class;
+			}
 		}
 		return $names;
 	}
 
 	/**
-	 * @return array Post types of ooPost types that are connected to this post type
+	 * @return array Post types of Post types that are connected to this post type
 	 */
 	public static function connectedPostTypes()
 	{
+		// todo: move to another class
 		global $_registeredConnections;
 		return isset($_registeredConnections[self::postType()]) ? $_registeredConnections[self::postType()] : array();
 	}
 
 	/**
-	 * @return array ClassNames of ooPost types that are connected to this post type
+	 * @return array ClassNames of Post types that are connected to this post type
 	 */
 	public static function connectedClassNames()
 	{
+		// todo: move to another class
 		$names = array();
+		$oowp = self::oowp();
 		foreach(self::connectedPostTypes() as $post_type){
-			$names[] = ooGetClassName($post_type);
+			$names[] = $oowp->postTypeClass($post_type);
 		}
 		return $names;
 	}
@@ -696,15 +661,25 @@ abstract class ooPost
 		return "";
 	}
 
+	public static function oowp() {
+		return Oowp::getInstance();
+	}
+
 
 #endregion
 
 #region HTML Template helpers
 
+	/**
+	 * TODO: Move all of these print functions to a printer class
+	 */
 	public function htmlLink($attrs = array())
 	{
-		$attrString = self::getAttributeString($attrs);
-		return "<a href='" . $this->permalink() . "' $attrString>" . $this->title() . "</a>";
+		$attributeString = '';
+		foreach($attrs as $key => $value){
+			$attributeString .= " $key=\"$value\" ";
+		}
+		return "<a href=\"" . $this->permalink() . "\" $attributeString>" . $this->title() . "</a>";
 	}
 
 	protected static function htmlList($items)
@@ -716,48 +691,10 @@ abstract class ooPost
 		return implode(', ', $links);
 	}
 
-	/**
-	 * @static
-	 * Prints each of the post_type roots using the 'menuitem' partial
-	 * @param array $queryArgs
-	 * @param array $menuArgs
-	 */
-	public static function printMenuItems($queryArgs = array(), $menuArgs = array()){
-		if(!isset($queryArgs['post_parent'])){
-			$posts = static::fetchRoots($queryArgs);
-		}else{
-			$posts = static::fetchAll($queryArgs);
-		}
-
-		$menuArgs['max_depth'] = isset($menuArgs['max_depth']) ? $menuArgs['max_depth'] : 0;
-		$menuArgs['current_depth'] = isset($menuArgs['current_depth']) ? $menuArgs['current_depth'] : 1;
-		foreach($posts as $post){
-			$post->printMenuItem($menuArgs);
-		}
-	}
-
 	// functions for printing with each of the provided partial files
 	public function printSidebar() { $this->printPartial('sidebar'); }
 	public function printMain() { $this->printPartial('main'); }
 	public function printItem() { $this->printPartial('item'); }
-	public function printMenuItem($menuArgs = array()) {
-		$menuArgs['max_depth'] = isset($menuArgs['max_depth'])? $menuArgs['max_depth'] : 0;
-		$menuArgs['current_depth'] = isset($menuArgs['current_depth'])? $menuArgs['current_depth'] : 1;
-		$this->printPartial('menuitem', $menuArgs);
-	}
-
-	/**
-	 * @static turns and array of key=>value attibutes into html string
-	 * @param $attrs  key=>value attibutes
-	 * @return string html for including in an element
-	 */
-	public static function getAttributeString($attrs){
-		$attributeString = '';
-		foreach($attrs as $key => $value){
-			$attributeString .= " $key='$value' ";
-		}
-		return $attributeString;
-	}
 
 	/**
 	 * Prints the partial into an html string, which is returned
@@ -773,92 +710,8 @@ abstract class ooPost
 		return $html;
 	}
 
-	public static function theme() {
-		return ooTheme::getInstance();
-	}
-
-	/**
-	 * looks for $partialType-$post_type.php, then $partialType.php in the partials directory of
-	 * the theme, then the plugin
-	 * @param $partialType  - e.g. main,  item, promo, etc
-	 * @param array $args To be used by the partial file
-	 */
-	public function printPartial($partialType, $args = array())
-	{
-		// look in the theme directory, then plugin directory
-		$places = array(get_stylesheet_directory() . '/partials', dirname(__FILE__) . "/../partials");
-		$paths  = array();
-		extract($args);
-		$specific = array();
-		$nonspecific = array();
-		foreach ($places as $path) {
-			$this->findPartialMatches($path, $partialType, $paths, $specific, $nonspecific);
-		}
-
-		// pick the first specific, or the first non-specific to display
-		$match = ($specific ? $specific[0] : ($nonspecific ? $nonspecific[0] : null));
-		if ($match) {
-			$post = $this;
-			$_theme = self::theme();
-			if (WP_DEBUG) print "\n\n<!--start $match start-->\n";
-			include($match);
-			if (WP_DEBUG) print "\n<!--end $match end-->\n\n";
-		} else {
-			// show an error message
-			?>
-		<div class="oowp-error">
-			<span class="oowp-post-type"><?php echo $this->postType(); ?></span>: <span class="oowp-post-id"><?php echo $this->ID; ?></span>
-			<div class="oowp-error-message">Partial '<?php echo $partialType; ?>' not found</div>
-			<!-- <?php print_r($paths); ?> -->
-		</div>
-		<?php
-//  		throw new Exception(sprintf("Partial $partialType not found", $paths, get_class($this)));
-		}
-	}
-
-	/**
-	 * Recurses through the path structure, looking for files that match the partial type
-	 * @param $path
-	 * @param $partialType
-	 * @param $paths array Populated with all discovered files
-	 * @param $specific array Populated with all post_type/partial exact matches
-	 * @param $nonspecific array Populated with all partial matches (without a post_type)
-	 */
-	protected function findPartialMatches($path, $partialType, &$paths, &$specific, &$nonspecific) {
-		if (file_exists($path)) {
-			if (is_dir($path)) {
-				$entries = array();
-				$fh = opendir($path);
-				while (false !== ($entry = readdir($fh))) {
-					if (!in_array($entry, array('.', '..'))) {
-						$entries[] = $entry;
-					}
-				}
-				closedir($fh);
-
-				sort($entries);
-				foreach ($entries as $entry) {
-					$this->findPartialMatches($path . DIRECTORY_SEPARATOR . $entry, $partialType, $paths, $specific, $nonspecific);
-				}
-			} else {
-				$paths[] = $path;
-				$filename = basename($path);
-				if (strpos($filename, $partialType) === 0) {
-					// if there is a file that contains the post name too, make that a priority for selection
-					$postTypeStart = strpos($filename, '-');
-					$postTypeEnd = strpos($filename, '.php');
-					if ($postTypeStart > 0) {
-						// split everything after the '-' by valid separators: ',', '|', '+' or ' '
-						$postTypes = preg_split('/[\s,|\+]+/', substr($filename, $postTypeStart+1, $postTypeEnd - $postTypeStart - 1));
-						if (in_array($this->postType(), $postTypes)) {
-							$specific[] = $path;
-						}
-					} else {
-						$nonspecific[] = $path;
-					}
-				}
-			}
-		}
+	function printPartial($partial, $args = array()) {
+		$this->oowp()->renderer()->printPost($this, $partial, $args);
 	}
 
 	/***
@@ -885,7 +738,7 @@ abstract class ooPost
 	 * @return bool true if this is an ancestor of the page currently being viewed
 	 */
 	public function isCurrentPage() {
-		$x = ooPost::getQueriedObject();
+		$x = Post::getQueriedObject();
 		if (isset($x) && $x->ID == $this->ID) return true;
 
 		return false;
@@ -894,7 +747,7 @@ abstract class ooPost
 	 * @return bool true if this is an ancestor of the page currently being viewed
 	 */
 	public function isCurrentPageParent() {
-		$x = ooPost::getQueriedObject();
+		$x = Post::getQueriedObject();
 		if (isset($x) && ($x->post_parent == $this->ID || $x->postTypeParentId() == $this->ID)) return true;
 
 		return false;
@@ -903,7 +756,7 @@ abstract class ooPost
 	 * @return bool true if this is an ancestor of the page currently being viewed
 	 */
 	public function isCurrentPageAncestor() {
-		$x = ooPost::getQueriedObject();
+		$x = Post::getQueriedObject();
 		while (isset($x) && $x) {
 			if ($x->ID == $this->ID) return true;
 			$x = $x->parent();
@@ -953,11 +806,11 @@ abstract class ooPost
 
 	/**
 	 * @deprecated
-	 * @return ooWP_Query
+	 * @return OowpQuery
 	 */
 	public function attachments(){
 		$queryArgs = array( 'post_type' => 'attachment', 'numberposts' => -1, 'post_status' => 'inherit', 'post_parent' => $this->ID );
-		return new ooWP_Query($queryArgs);
+		return new OowpQuery($queryArgs);
 	}
 
 	protected function listToString($posts, $without_links = false){
@@ -1020,10 +873,6 @@ abstract class ooPost
 		add_filter("manage_edit-{$postType}_columns", array($class, 'addCustomAdminColumns_internal'));
 		add_action("manage_{$postType}_posts_custom_column", array($class, 'printCustomAdminColumn_internal'), 10, 2);
 		add_action('right_now_content_table_end', array($class, 'addRightNowCount'));
-		global $_registeredPostClasses;
-		global $_registeredConnections;
-		$_registeredPostClasses[$postType] = $class;
-		$_registeredConnections[$postType] = array();
 		return $var;
 	}
 
@@ -1071,13 +920,13 @@ abstract class ooPost
 	static final function printCustomAdminColumn_internal($column, $post_id) {
 		$key = 'adminColumnPost';
 		// try to get the post from the cache, to minimise re-fetching
-		if (!isset(ooPost::$_staticCache[$key]) || ooPost::$_staticCache[$key]->ID != $post_id) {
+		if (!isset(Post::$_staticCache[$key]) || Post::$_staticCache[$key]->ID != $post_id) {
 			$status = empty($_GET['post_status']) ? 'publish' : $_GET['post_status'];
-			$query = new ooWP_Query(array('p'=>$post_id, 'posts_per_page'=>1, 'post_status'=>$status));
-			ooPost::$_staticCache[$key] = ($query->post_count ? $query->post : null);
+			$query = new OowpQuery(array('p'=>$post_id, 'posts_per_page'=>1, 'post_status'=>$status));
+			Post::$_staticCache[$key] = ($query->post_count ? $query->post : null);
 		}
-		if (ooPost::$_staticCache[$key]) {
-			static::printCustomAdminColumn($column, ooPost::$_staticCache[$key]);
+		if (Post::$_staticCache[$key]) {
+			static::printCustomAdminColumn($column, Post::$_staticCache[$key]);
 		}
 	}
 
@@ -1094,21 +943,21 @@ abstract class ooPost
 	 * @static
 	 * Use this in combination with addCustomAdminColumns to render the column value for a post
 	 * @param $column string The name of the column, as given in addCustomAdminColumns
-	 * @param $post ooPost The post (subclass) object
+	 * @param $post Post The post (subclass) object
 	 */
 	static function printCustomAdminColumn($column, $post) { /* do nothing */ }
 
 	/**
 	 * @static
 	 * Gets the queried object (i.e. the post/page currently being viewed)
-	 * @return null|ooPost
+	 * @return null|Post
 	 */
 	static function getQueriedObject() {
 		global $ooQueriedObject;
 		if (!isset($ooQueriedObject)) {
 			global $wp_the_query;
 			$id = $wp_the_query->get_queried_object_id();
-			$ooQueriedObject = $id ? ooPost::fetchById($id) : null;
+			$ooQueriedObject = $id ? Post::fetchById($id) : null;
 		}
 		return $ooQueriedObject;
 	}
@@ -1127,10 +976,15 @@ abstract class ooPost
 
 		//register this connection globally so that we can find out about it later
 		global $_registeredConnections;
-		if(!$_registeredConnections[$postType]) $_registeredConnections[$postType] = array();
-		if(!$_registeredConnections[$targetPostType]) $_registeredConnections[$targetPostType] = array();
-		if(in_array($targetPostType, $_registeredConnections[$postType]))
+		if(empty($_registeredConnections[$postType])) {
+			$_registeredConnections[$postType] = array();
+		}
+		if(empty($_registeredConnections[$targetPostType])) {
+			$_registeredConnections[$targetPostType] = array();
+		}
+		if (in_array($targetPostType, $_registeredConnections[$postType])) {
 			return; //this connection has already been registered
+		}
 		$_registeredConnections[$targetPostType][] = $postType;
 		$_registeredConnections[$postType][] = $targetPostType;
 
@@ -1151,10 +1005,10 @@ abstract class ooPost
 	}
 
 	/**
-	 * @static factory class creates a post of the appropriate ooPost subclass, populated with the given data
+	 * @static factory class creates a post of the appropriate Post subclass, populated with the given data
 	 * @param null $data
-	 * @return ooPost - an ooPost object or subclass if it exists
-	 * @deprecated Use ooPost::createPostObject()
+	 * @return Post - an Post object or subclass if it exists
+	 * @deprecated Use Post::createPostObject()
 	 */
 	public static function fetch($data = null)
 	{
@@ -1162,16 +1016,16 @@ abstract class ooPost
 	}
 
 	/**
-	 * Factory method for creating a post of the appropriate ooPost subclass, for the given data
+	 * Factory method for creating a post of the appropriate Post subclass, for the given data
 	 * @static
 	 * @param object $data
-	 * @return ooPost|null
+	 * @return Post|null
 	 */
 	public static function createPostObject($data = null) {
 		if ($data) {
 			$postData = self::getPostObject($data);
 			if ($postData) {
-				$className = ooGetClassName($postData->post_type);
+				$className = self::oowp()->postTypeClass($postData->post_type);
 				if ($className == get_class($postData)) {
 					return $postData;
 				} else {
@@ -1183,18 +1037,19 @@ abstract class ooPost
 	}
 
 	/**
-	 * Factory method for creating a post of the appropriate ooPost subclass, for the given post ID
+	 * Factory method for creating a post of the appropriate Post subclass, for the given post ID
 	 * @static
 	 * @param $ids int|int[]
-	 * @return ooPost|ooWP_Query|null
+	 * @throws \Exception
+	 * @return Post|OowpQuery|null
 	 */
 	public static function fetchById($ids) {
 		if (is_array($ids) && $ids){
-			return new ooWP_Query(array('post__in' => $ids));
+			return new OowpQuery(array('post__in' => $ids));
 		}elseif($ids){
 			return static::fetchOne(array('p' => $ids));
 		}else{
-			throw new Exception("no Ids supplied to ooPost::fetchById()");
+			throw new \Exception("no Ids supplied to Post::fetchById()");
 		}
 	}
 
@@ -1209,7 +1064,7 @@ abstract class ooPost
 	/**
 	 * @static
 	 * @param array $queryArgs - accepts a wp_query $queryArgs array which overwrites the defaults
-	 * @return ooWP_Query
+	 * @return OowpQuery
 	 */
 	public static function fetchAll($queryArgs = array())
 	{
@@ -1222,7 +1077,7 @@ abstract class ooPost
 		}
 
 		$queryArgs = wp_parse_args($queryArgs, $defaults);
-		$query	= new ooWP_Query($queryArgs);
+		$query	= new OowpQuery($queryArgs);
 
 		return $query;
 	}
@@ -1237,15 +1092,15 @@ abstract class ooPost
 
 	/**
 	 * @static
-	 * @return null|ooPost
+	 * @return null|Post
 	 */
 	static function fetchHomepage() {
 		$key = 'homepage';
-		if (!array_key_exists($key, ooPost::$_staticCache)) {
+		if (!array_key_exists($key, Post::$_staticCache)) {
 			$id = get_option('page_on_front');
-			ooPost::$_staticCache[$key] = $id ? self::fetchById($id) : null;
+			Post::$_staticCache[$key] = $id ? self::fetchById($id) : null;
 		}
-		return ooPost::$_staticCache[$key];
+		return Post::$_staticCache[$key];
 	}
 
 	/**
@@ -1259,19 +1114,19 @@ abstract class ooPost
 	 * Return the first post matching the arguments
 	 * @static
 	 * @param $queryArgs
-	 * @return null|ooPost
+	 * @return null|Post
 	 */
 	static function fetchOne($queryArgs)
 	{
 		$queryArgs['posts_per_page'] = 1;
-		$query = new ooWP_Query($queryArgs);
+		$query = new OowpQuery($queryArgs);
 		return $query->posts ? $query->post : null;
 	}
 
 	/**
 	 * @static Returns the roots of this post type (i.e those whose post_parent is self::postTypeParentId)
 	 * @param array $queryArgs
-	 * @return ooWP_Query
+	 * @return OowpQuery
 	 */
 	static function fetchRoots($queryArgs = array())
 	{
@@ -1299,66 +1154,4 @@ abstract class ooPost
 
 }
 
-/**
- * As ooPost is abstract, this class is only used for instantiating oowp objects without a corresponding class
- */
-class ooMiscPost extends ooPost {
 
-}
-
-/**
- * As ooPost is abstract, this class can be used for entities that have no real existence, e.g. 404 pages
- */
-class ooFakePost extends ooPost {
-	public function __construct($args = array()) {
-		//set defaults
-		$postArray = wp_parse_args($args, array(
-			'ID' => 0,
-			'post_parent' => 0,
-			'post_title' => '',
-			'post_name' => '',
-			'post_content' => '',
-			'post_type' => 'fake',
-			'post_status' => 'publish',
-			'post_date' => date('Y-m-d')
-		));
-
-		//slugify title
-		if ($postArray['post_title'] && !$postArray['post_name']) {
-			$postArray['post_name'] = sanitize_title_with_dashes($postArray['post_title']);
-		}
-
-		parent::__construct($postArray);
-	}
-
-	public function permalink() {
-		if (!empty($this->permalink)) {
-			return $this->permalink;
-		}
-		return parent::permalink();
-	}
-
-	/**
-	 * @return string the Robots meta tag, should be NOINDEX, NOFOLLOW for some post types
-	 */
-	public function robots(){
-		return "NOINDEX, NOFOLLOW";
-	}
-}
-
-class ArrayHelper {
-	public $array = array();
-
-	function __construct($array = array()) {
-		$this->array = $array;
-	}
-
-	function insertBefore($beforeKey, $key, $value) {
-		$this->array = array_insert_before($this->array, $beforeKey, $key, $value);
-	}
-
-	function insertAfter($afterKey, $key, $value) {
-		$this->array = array_insert_after($this->array, $afterKey, $key, $value);
-	}
-}
-?>
