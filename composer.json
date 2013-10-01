@@ -1,9 +1,9 @@
 {
     "name": "outlandish/oowp",
     "autoload": {
-	    "classmap": ["classes/"],
+	    "classmap": [],
 	    "psr-0": {
-		    "Outlandish\\Oowp\\": "new"
+		    "Outlandish\\Oowp\\": ""
 	    }
     },
     "type": "wordpress-plugin",
