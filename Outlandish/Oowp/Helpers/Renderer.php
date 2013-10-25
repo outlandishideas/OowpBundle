@@ -121,7 +121,7 @@ class Renderer {
 
 		// show an error message
 		?>
-		<div class="oowp-error">
+		<div class="oowp-error" style="background: #fcc;border: 1px dashed #c33;margin: 2px;padding: 2px;float: left;clear: both;">
 			<span class="oowp-post-type"><?php echo $postType; ?></span>: <span class="oowp-post-id"><?php echo $post->ID; ?></span>
 			<div class="oowp-error-message">Partial '<?php echo $partialType; ?>' not found</div>
 		</div>

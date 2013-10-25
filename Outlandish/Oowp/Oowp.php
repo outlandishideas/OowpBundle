@@ -205,9 +205,6 @@ class Oowp {
 		if ($isAdmin) {
 			$wpHelper->enqueueScript('oowp_admin_js', $url . '/Resources/public/js/oowp-admin.js', array('jquery'), false, true);
 			$wpHelper->enqueueStyle('oowp_admin_css', $url . '/Resources/public/css/oowp-admin.css');
-		} else {
-			$wpHelper->enqueueScript('oowp_js', $url . '/Resources/public/js/oowp.js', array('jquery'), false, true);
-			$wpHelper->enqueueStyle('oowp_css', $url . '/Resources/public/css/oowp.css');
 		}
 	}
 
