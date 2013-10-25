@@ -1,5 +1,5 @@
 {
-    "name": "outlandish/oowp-bundle",
+    "name": "outlandish/oowp",
 	"require": {
 		"symfony/framework-bundle": "~2.3"
 	},
