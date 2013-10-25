@@ -6,7 +6,7 @@ Description: A brief description of the Plugin.
 Version: 0.2
 */
 
-use Outlandish\Oowp\Oowp;
+use Outlandish\OowpBundle\Oowp;
 
 $_registeredConnections = array();
 

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Outlandish\Oowp\Helpers;
+namespace Outlandish\OowpBundle\Helpers;
 
 /**
  * Static utility class

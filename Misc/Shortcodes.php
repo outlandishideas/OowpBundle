@@ -1,8 +1,8 @@
 <?php
 
-namespace Outlandish\Oowp\Misc;
+namespace Outlandish\OowpBundle\Misc;
 
-use Outlandish\Oowp\Oowp;
+use Outlandish\OowpBundle\Oowp;
 
 class Shortcodes {
 	public function init() {

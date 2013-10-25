@@ -1,9 +1,9 @@
 <?php
 
-namespace Outlandish\Oowp\PostType;
-use Outlandish\Oowp\Helpers\ArrayHelper;
-use Outlandish\Oowp\Helpers\OowpQuery;
-use Outlandish\Oowp\Oowp;
+namespace Outlandish\OowpBundle\PostType;
+use Outlandish\OowpBundle\Helpers\ArrayHelper;
+use Outlandish\OowpBundle\Helpers\OowpQuery;
+use Outlandish\OowpBundle\Oowp;
 
 /**
  * This class contains functions which are shared across all post types, and across all sites.

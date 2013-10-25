@@ -1,17 +1,15 @@
 <?php
 
 
-namespace Outlandish\Oowp;
+namespace Outlandish\OowpBundle;
 
 
-use Outlandish\Oowp\Helpers\Renderer;
-use Outlandish\Oowp\Helpers\WordpressHelper;
-use Outlandish\Oowp\PostType\Post;
-use Outlandish\Oowp\Misc\Shortcodes;
+use Outlandish\OowpBundle\Helpers\Renderer;
+use Outlandish\OowpBundle\Helpers\WordpressHelper;
+use Outlandish\OowpBundle\PostType\Post;
+use Outlandish\OowpBundle\Misc\Shortcodes;
 
 class Oowp {
-
-	protected static $singleton = null;
 
 	protected $postTypeMapping = array();
 	protected $hiddenAdminMenuPages = array(
@@ -26,20 +24,7 @@ class Oowp {
 	/** @var Renderer */
 	protected $renderer;
 
-	/**
-	 * @return Oowp
-	 */
-	public static function getInstance() {
-		if (!Oowp::$singleton) {
-			if (defined('OOWP_CLASS') && is_subclass_of(OOWP_CLASS, 'Outlandish\Oowp\Oowp')) {
-				$class = OOWP_CLASS;
-				Oowp::$singleton = new $class();
-			}
-		}
-		return Oowp::$singleton;
-	}
-
-	protected function __construct() {
+	public function __construct() {
 		$this->shortcodes = new Shortcodes();
 	}
 

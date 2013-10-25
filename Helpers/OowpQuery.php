@@ -1,9 +1,9 @@
 <?php
 
-namespace Outlandish\Oowp\Helpers;
+namespace Outlandish\OowpBundle\Helpers;
 
-use Outlandish\Oowp\Oowp;
-use Outlandish\Oowp\PostType\Post;
+use Outlandish\OowpBundle\Oowp;
+use Outlandish\OowpBundle\PostType\Post;
 
 class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \Countable
 {

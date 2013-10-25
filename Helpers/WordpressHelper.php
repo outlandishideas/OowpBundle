@@ -1,6 +1,6 @@
 <?php
 
-namespace Outlandish\Oowp\Helpers;
+namespace Outlandish\OowpBundle\Helpers;
 
 class WordpressHelper {
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Outlandish\Oowp\PostType;
+namespace Outlandish\OowpBundle\PostType;
 
 abstract class RoutemasterPost extends Post {
 
