@@ -17,13 +17,6 @@ add_action('init', function() {
 	}
 });
 
-function oofp($data, $title = null)
-{
-	if (class_exists('FirePHP')) {
-		FirePHP::getInstance(true)->log($data, $title);
-	}
-}
-
 function oowp_print_right_now_count($count, $postType, $singular, $plural, $status = null) {
 	if (get_post_type_object($postType)->show_ui) {
 		$num = number_format_i18n($count);

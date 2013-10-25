@@ -110,14 +110,12 @@ abstract class Post
 	public function __call($name, $args)
 	{
 		if (function_exists($name)) {
-			oofp('Using default wordpress function ' . $name . ' and global $post');
 			global $post;
 			$post = $this;
 			setup_postdata($this);
 			return call_user_func_array($name, $args);
 		} elseif (function_exists("wp_" . $name)) {
 			$name = "wp_" . $name;
-			oofp('Using default wordpress function wp_' . $name . ' and global $post');
 			global $post;
 			$post = $this;
 			setup_postdata($this);
