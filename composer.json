@@ -1,13 +1,12 @@
 {
-    "name": "outlandish/oowp",
-    "autoload": {
-	    "classmap": [],
-	    "psr-0": {
-		    "Outlandish\\Oowp\\": ""
-	    }
-    },
-    "type": "wordpress-plugin",
-    "require": {
-        "composer/installers": "~1.0"
-    }
+    "name": "outlandish/oowp-bundle",
+	"require": {
+		"symfony/framework-bundle": "~2.3"
+	},
+	"autoload": {
+		"psr-0": {
+			"Outlandish\\OowpBundle\\": ""
+		}
+	},
+	"target-dir": "Outlandish/OowpBundle"
 }
