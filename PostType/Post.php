@@ -3,6 +3,7 @@
 namespace Outlandish\OowpBundle\PostType;
 use Outlandish\OowpBundle\Helpers\ArrayHelper;
 use Outlandish\OowpBundle\Helpers\OowpQuery;
+use Outlandish\OowpBundle\Manager\QueryManager;
 use Outlandish\OowpBundle\Oowp;
 
 /**
@@ -56,11 +57,16 @@ abstract class Post
 
 	/**
 	 * @param $data int | array | object
+	 * @param \Outlandish\OowpBundle\Oowp $postManager
+	 * @param \Outlandish\OowpBundle\Manager\QueryManager $queryManager
 	 */
-	public function __construct($data)
+	public function __construct($data, Oowp $postManager, QueryManager $queryManager)
 	{
 		//Make sure it's an object
 		$this->post = self::getPostObject($data);
+
+		$this->queryManager = $queryManager;
+		$this->postManager = $postManager;
 	}
 
 	/**
@@ -336,7 +342,7 @@ abstract class Post
 			$useMenuOrder = $hierarchical;
 			if (!$useMenuOrder) {
 				foreach ($targetPostType as $postType) {
-					if (self::isHierarchical($postType)) {
+					if (is_post_type_hierarchical($postType)) {
 						$useMenuOrder = true;
 						break;
 					}
@@ -348,7 +354,7 @@ abstract class Post
 			}
 
 			$queryArgs   = array_merge($defaults, $queryArgs);
-			$result = new OowpQuery($queryArgs);
+			$result = $this->queryManager->query($queryArgs);
 
 			if ($hierarchical) { //filter out any duplicate posts
 				$post_ids = array();
@@ -466,7 +472,7 @@ abstract class Post
 	public function parent() {
 		$parentId = !empty($this->post_parent) ? $this->post_parent : static::postTypeParentId();
 		return $this->getCacheValue() ?: $this->setCacheValue(
-			!empty($parentId) ? Post::fetchById($parentId) : null
+			!empty($parentId) ? $this->queryManager->find($parentId) : null
 		);
 	}
 
@@ -563,7 +569,7 @@ abstract class Post
 		// fetch the default children
 		$defaults = array('post_parent' => $this->ID, 'post_type'=>'any');
 		$queryArgs = wp_parse_args($queryArgs, $defaults);
-		$children = static::fetchAll($queryArgs);
+		$children = $this->queryManager->query($queryArgs);
 
 		$postTypes = $queryArgs['post_type'];
 
@@ -575,7 +581,8 @@ abstract class Post
 		foreach($this->childPostTypes() as $postType=>$class){
 			foreach ($postTypes as $p) {
 				if ($p == 'any' || ($p != 'none' && $p == $postType)) {
-					$posts = array_merge($posts, $class::fetchRoots($queryArgs)->posts);
+					$rootsQuery = $this->queryManager->query(array('post_parent' => self::postTypeParentId()));
+					$posts = array_merge($posts, $rootsQuery->posts);
 				}
 			}
 		}
@@ -808,7 +815,7 @@ abstract class Post
 	 */
 	public function attachments(){
 		$queryArgs = array( 'post_type' => 'attachment', 'numberposts' => -1, 'post_status' => 'inherit', 'post_parent' => $this->ID );
-		return new OowpQuery($queryArgs);
+		return $this->queryManager->query($queryArgs);
 	}
 
 	protected function listToString($posts, $without_links = false){
@@ -920,7 +927,8 @@ abstract class Post
 		// try to get the post from the cache, to minimise re-fetching
 		if (!isset(Post::$_staticCache[$key]) || Post::$_staticCache[$key]->ID != $post_id) {
 			$status = empty($_GET['post_status']) ? 'publish' : $_GET['post_status'];
-			$query = new OowpQuery(array('p'=>$post_id, 'posts_per_page'=>1, 'post_status'=>$status));
+			//todo
+			$query = $this->queryManager->query(array('p'=>$post_id, 'posts_per_page'=>1, 'post_status'=>$status));
 			Post::$_staticCache[$key] = ($query->post_count ? $query->post : null);
 		}
 		if (Post::$_staticCache[$key]) {
@@ -1034,72 +1042,72 @@ abstract class Post
 		return null;
 	}
 
-	/**
-	 * Factory method for creating a post of the appropriate Post subclass, for the given post ID
-	 * @static
-	 * @param $ids int|int[]
-	 * @throws \Exception
-	 * @return Post|OowpQuery|null
-	 */
-	public static function fetchById($ids) {
-		if (is_array($ids) && $ids){
-			return new OowpQuery(array('post__in' => $ids));
-		}elseif($ids){
-			return static::fetchOne(array('p' => $ids));
-		}else{
-			throw new \Exception("no Ids supplied to Post::fetchById()");
-		}
-	}
-
-	public static function fetchBySlug($slug){
-		return static::fetchOne(array(
-			'name' => $slug,
-			'post_type' => static::postType(),
-			'numberposts' => 1
-		));
-	}
-
-	/**
-	 * @static
-	 * @param array $queryArgs - accepts a wp_query $queryArgs array which overwrites the defaults
-	 * @return OowpQuery
-	 */
-	public static function fetchAll($queryArgs = array())
-	{
-		$defaults = array(
-			'post_type' => static::postType()
-		);
-		if (static::isHierarchical()) {
-			$defaults['orderby'] = 'menu_order';
-			$defaults['order'] = 'asc';
-		}
-
-		$queryArgs = wp_parse_args($queryArgs, $defaults);
-		$query	= new OowpQuery($queryArgs);
-
-		return $query;
-	}
-
-	/**
-	 * @deprecated
-	 */
-	static function fetchAllQuery($queryArgs = array())
-	{
-		return static::fetchAll($queryArgs);
-	}
-
-	/**
-	 * @static
-	 * @return null|Post
-	 */
-	static function fetchHomepage() {
-		$key = 'homepage';
-		if (!array_key_exists($key, Post::$_staticCache)) {
-			$id = get_option('page_on_front');
-			Post::$_staticCache[$key] = $id ? self::fetchById($id) : null;
-		}
-		return Post::$_staticCache[$key];
-	}
+//	/**
+//	 * Factory method for creating a post of the appropriate Post subclass, for the given post ID
+//	 * @static
+//	 * @param $ids int|int[]
+//	 * @throws \Exception
+//	 * @return Post|OowpQuery|null
+//	 */
+//	public static function fetchById($ids) {
+//		if (is_array($ids) && $ids){
+//			return new OowpQuery(array('post__in' => $ids));
+//		}elseif($ids){
+//			return static::fetchOne(array('p' => $ids));
+//		}else{
+//			throw new \Exception("no Ids supplied to Post::fetchById()");
+//		}
+//	}
+//
+//	public static function fetchBySlug($slug){
+//		return static::fetchOne(array(
+//			'name' => $slug,
+//			'post_type' => static::postType(),
+//			'numberposts' => 1
+//		));
+//	}
+//
+//	/**
+//	 * @static
+//	 * @param array $queryArgs - accepts a wp_query $queryArgs array which overwrites the defaults
+//	 * @return OowpQuery
+//	 */
+//	public static function fetchAll($queryArgs = array())
+//	{
+//		$defaults = array(
+//			'post_type' => static::postType()
+//		);
+//		if (static::isHierarchical()) {
+//			$defaults['orderby'] = 'menu_order';
+//			$defaults['order'] = 'asc';
+//		}
+//
+//		$queryArgs = wp_parse_args($queryArgs, $defaults);
+//		$query	= new OowpQuery($queryArgs);
+//
+//		return $query;
+//	}
+//
+//	/**
+//	 * @deprecated
+//	 */
+//	static function fetchAllQuery($queryArgs = array())
+//	{
+//		return static::fetchAll($queryArgs);
+//	}
+//
+//	/**
+//	 * @static
+//	 * @return null|Post
+//	 */
+//	static function fetchHomepage() {
+//		$key = 'homepage';
+//		if (!array_key_exists($key, Post::$_staticCache)) {
+//			$id = get_option('page_on_front');
+//			Post::$_staticCache[$key] = $id ? self::fetchById($id) : null;
+//		}
+//		return Post::$_staticCache[$key];
+//	}
 
 	/**
 	 * @return bool true if this is the site homepage
@@ -1108,44 +1116,34 @@ abstract class Post
 		return $this->ID == get_option('page_on_front');
 	}
 
-	/**
-	 * Return the first post matching the arguments
-	 * @static
-	 * @param $queryArgs
-	 * @return null|Post
-	 */
-	static function fetchOne($queryArgs)
-	{
-		$queryArgs['posts_per_page'] = 1;
-		$query = new OowpQuery($queryArgs);
-		return $query->posts ? $query->post : null;
-	}
+//	/**
+//	 * Return the first post matching the arguments
+//	 * @static
+//	 * @param $queryArgs
+//	 * @return null|Post
+//	 */
+//	static function fetchOne($queryArgs)
+//	{
+//		$queryArgs['posts_per_page'] = 1;
+//		$query = new OowpQuery($queryArgs);
+//		return $query->posts ? $query->post : null;
+//	}
+//
+//	/**
+//	 * @static Returns the roots of this post type (i.e those whose post_parent is self::postTypeParentId)
+//	 * @param array $queryArgs
+//	 * @return OowpQuery
+//	 */
+//	static function fetchRoots($queryArgs = array())
+//	{
+//		#todo perhaps the post_parent should be set properly in the database
+////		$queryArgs['post_parent'] = static::postTypeParentId();
+//		$queryArgs['post_parent'] = self::postTypeParentId();
+//		return static::fetchAll($queryArgs);
+//	}
 
-	/**
-	 * @static Returns the roots of this post type (i.e those whose post_parent is self::postTypeParentId)
-	 * @param array $queryArgs
-	 * @return OowpQuery
-	 */
-	static function fetchRoots($queryArgs = array())
-	{
-		#todo perhaps the post_parent should be set properly in the database
-//		$queryArgs['post_parent'] = static::postTypeParentId();
-		$queryArgs['post_parent'] = self::postTypeParentId();
-		return static::fetchAll($queryArgs);
-	}
 
 
-	/**
-	 * @static
-	 * @param null $postType
-	 * @return bool Whether or not the post type is declared as hierarchical
-	 */
-	static function isHierarchical($postType = null) {
-		if (!$postType) {
-			$postType = static::postType();
-		}
-		return is_post_type_hierarchical($postType);
-	}
 
 #endregion
 

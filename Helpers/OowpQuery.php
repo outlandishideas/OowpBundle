@@ -2,17 +2,32 @@
 
 namespace Outlandish\OowpBundle\Helpers;
 
+use Outlandish\OowpBundle\Manager\QueryManager;
 use Outlandish\OowpBundle\Oowp;
 use Outlandish\OowpBundle\PostType\Post;
 
 class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \Countable
 {
+	/**
+	 * @var Oowp
+	 */
+	protected $postManager;
+
+	/**
+	 * @var QueryManager
+	 */
+	protected $queryManager;
 
 	/**
 	 * @param string|array $query
+	 * @param Oowp $postManager
+	 * @param $queryManager
 	 */
-	function __construct($query = '') {
+	function __construct($query = '', $postManager, $queryManager) {
 		global $wp_post_types;
+
+		$this->postManager = $postManager;
+		$this->queryManager = $queryManager;
 
 		$defaults = array(
 			'posts_per_page' => -1,
@@ -28,6 +43,7 @@ class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \
 		parent::__construct($query);
 
 		if ($this->query_vars['error']) {
+			//todo: throw exception
 			die('Query error ' . $this->query_vars['error']);
 		}
 	}
@@ -58,47 +74,47 @@ class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \
 		return count($this->posts);
 	}
 
-	/**
-	 * Stores $this as the global $wp_query, executes the passed-in WP function, then reverts $wp_query
-	 * @return mixed
-	 */
-	protected function callGlobalQuery() {
-		global $wp_query;
-		$args     = func_get_args();
-		$function = array_shift($args);
-		$oldQuery = $wp_query;
-		$wp_query = $this;
-		$returnVal = call_user_func_array($function, $args);
-		$wp_query = $oldQuery;
-		return $returnVal;
-	}
-
-	/**
-	 * Returns the prev/next links for this query
-	 * @param string $sep
-	 * @param string $preLabel
-	 * @param string $nextLabel
-	 * @return mixed
-	 */
-	public function postsNavLink($sep = '', $preLabel = '', $nextLabel = '') {
-		return $this->callGlobalQuery('get_posts_nav_link', $sep, $preLabel, $nextLabel);
-	}
-
-	/**
-	 * @return QueryVars
-	 */
-	public function queryVars() {
-		return new QueryVars($this->query_vars);
-	}
-
-	public function sortByIds($ids) {
-		$indexes = array_flip($ids);
-		usort($this->posts, function($a, $b) use ($indexes) {
-			$aIndex = $indexes[$a->ID];
-			$bIndex = $indexes[$b->ID];
-			return $aIndex < $bIndex ? -1 : 1;
-		});
-	}
+//	/**
+//	 * Stores $this as the global $wp_query, executes the passed-in WP function, then reverts $wp_query
+//	 * @return mixed
+//	 */
+//	protected function callGlobalQuery() {
+//		global $wp_query;
+//		$args     = func_get_args();
+//		$function = array_shift($args);
+//		$oldQuery = $wp_query;
+//		$wp_query = $this;
+//		$returnVal = call_user_func_array($function, $args);
+//		$wp_query = $oldQuery;
+//		return $returnVal;
+//	}
+//
+//	/**
+//	 * Returns the prev/next links for this query
+//	 * @param string $sep
+//	 * @param string $preLabel
+//	 * @param string $nextLabel
+//	 * @return mixed
+//	 */
+//	public function postsNavLink($sep = '', $preLabel = '', $nextLabel = '') {
+//		return $this->callGlobalQuery('get_posts_nav_link', $sep, $preLabel, $nextLabel);
+//	}
+//
+//	/**
+//	 * @return QueryVars
+//	 */
+//	public function queryVars() {
+//		return new QueryVars($this->query_vars);
+//	}
+//
+//	public function sortByIds($ids) {
+//		$indexes = array_flip($ids);
+//		usort($this->posts, function($a, $b) use ($indexes) {
+//			$aIndex = $indexes[$a->ID];
+//			$bIndex = $indexes[$b->ID];
+//			return $aIndex < $bIndex ? -1 : 1;
+//		});
+//	}
 
 	/**
 	 * Convert WP_Post objects to oowp Post objects
@@ -107,10 +123,9 @@ class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \
 	public function &get_posts() {
 		parent::get_posts();
 
-		$oowp = Oowp::getInstance();
 		foreach ($this->posts as $i => $post) {
-			$classname = $oowp->postTypeClass($post->post_type);
-			$this->posts[$i] = new $classname($post);
+			$classname = $this->postManager->postTypeClass($post->post_type);
+			$this->posts[$i] = new $classname($post, $this->postManager, $this->queryManager);
 		}
 
 		if (count($this->posts)) {

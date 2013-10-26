@@ -17,15 +17,17 @@ class Oowp {
 		'link-manager.php'
 	);
 
-	/** @var Shortcodes */
-	protected $shortcodes;
 	/** @var WordpressHelper */
 	protected $wpHelper;
 	/** @var Renderer */
 	protected $renderer;
 
 	public function __construct() {
-		$this->shortcodes = new Shortcodes();
+	}
+
+
+	public static function getInstance() {
+		return new self();
 	}
 
 	/**
@@ -36,7 +38,6 @@ class Oowp {
 		$this->registerPostTypes($classes);
 		$this->addWordpressHooks();
 		$this->postInit();
-		$this->shortcodes->init();
 	}
 
 	public function wpHelper() {
@@ -75,7 +76,7 @@ class Oowp {
 			)
 		);
 		foreach ($classes as $class) {
-			if (!is_subclass_of($class, 'Outlandish\Oowp\PostType\Post')) {
+			if (!is_subclass_of($class, 'Outlandish\OowpBundle\PostType\Post')) {
 				throw new \Exception('Invalid post type class: ' . $class);
 			}
 			$postType = $class::postType();
@@ -221,7 +222,7 @@ class Oowp {
 		} elseif (array_key_exists($postType, $this->postTypeMapping)) {
 			return $this->postTypeMapping[$postType];
 		} else {
-			return 'Outlandish\Oowp\PostType\MiscPost'; //post type with no dedicated class
+			return 'Outlandish\OowpBundle\PostType\MiscPost'; //post type with no dedicated class
 		}
 	}
 

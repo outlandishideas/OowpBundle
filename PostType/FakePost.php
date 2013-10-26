@@ -8,7 +8,7 @@ namespace Outlandish\OowpBundle\PostType;
  * As Post is abstract, this class can be used for entities that have no real existence, e.g. 404 pages
  */
 class FakePost extends Post {
-	public function __construct($args = array()) {
+	public function __construct($args = array(), $postManager, $queryManager) {
 		//set defaults
 		$postArray = wp_parse_args($args, array(
 			'ID' => 0,
@@ -26,7 +26,7 @@ class FakePost extends Post {
 			$postArray['post_name'] = sanitize_title_with_dashes($postArray['post_title']);
 		}
 
-		parent::__construct($postArray);
+		parent::__construct($postArray, $postManager, $queryManager);
 	}
 
 	public function permalink() {
