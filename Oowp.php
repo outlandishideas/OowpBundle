@@ -7,7 +7,6 @@ namespace Outlandish\OowpBundle;
 use Outlandish\OowpBundle\Helpers\Renderer;
 use Outlandish\OowpBundle\Helpers\WordpressHelper;
 use Outlandish\OowpBundle\PostType\Post;
-use Outlandish\OowpBundle\Misc\Shortcodes;
 
 class Oowp {
 
@@ -23,11 +22,6 @@ class Oowp {
 	protected $renderer;
 
 	public function __construct() {
-	}
-
-
-	public static function getInstance() {
-		return new self();
 	}
 
 	/**
@@ -89,6 +83,11 @@ class Oowp {
 			$args = $class::getRegistrationArgs($args);
 			register_post_type($postType, $args);
 			$this->postTypeMapping[$postType] = $class;
+			$class = get_called_class();
+			add_filter("manage_edit-{$postType}_columns", "$class::addCustomAdminColumns_internal");
+			add_action("manage_{$postType}_posts_custom_column", "$class::printCustomAdminColumn_internal", 10, 2);
+			add_action('right_now_content_table_end', "$class::addRightNowCount");
+
 		}
 	}
 

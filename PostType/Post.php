@@ -44,6 +44,15 @@ abstract class Post
 	 */
 	protected static $postType = 'post';
 
+	/**
+	 * @var Oowp
+	 */
+	protected static $postManager = null;
+	/**
+	 * @var QueryManager
+	 */
+	protected static $queryManager = null;
+
 	protected $_cache = array();
 	protected static $_staticCache = array();
 
@@ -57,16 +66,19 @@ abstract class Post
 
 	/**
 	 * @param $data int | array | object
-	 * @param \Outlandish\OowpBundle\Oowp $postManager
-	 * @param \Outlandish\OowpBundle\Manager\QueryManager $queryManager
 	 */
-	public function __construct($data, Oowp $postManager, QueryManager $queryManager)
+	public function __construct($data)
 	{
 		//Make sure it's an object
 		$this->post = self::getPostObject($data);
+	}
 
-		$this->queryManager = $queryManager;
-		$this->postManager = $postManager;
+	public static function setPostManager(Oowp $postManager) {
+		self::$postManager = $postManager;
+	}
+
+	public static function setQueryManager(QueryManager $queryManager) {
+		self::$queryManager = $queryManager;
 	}
 
 	/**
@@ -354,7 +366,7 @@ abstract class Post
 			}
 
 			$queryArgs   = array_merge($defaults, $queryArgs);
-			$result = $this->queryManager->query($queryArgs);
+			$result = self::$queryManager->query($queryArgs);
 
 			if ($hierarchical) { //filter out any duplicate posts
 				$post_ids = array();
@@ -472,7 +484,7 @@ abstract class Post
 	public function parent() {
 		$parentId = !empty($this->post_parent) ? $this->post_parent : static::postTypeParentId();
 		return $this->getCacheValue() ?: $this->setCacheValue(
-			!empty($parentId) ? $this->queryManager->find($parentId) : null
+			!empty($parentId) ? self::$queryManager->find($parentId) : null
 		);
 	}
 
@@ -569,7 +581,7 @@ abstract class Post
 		// fetch the default children
 		$defaults = array('post_parent' => $this->ID, 'post_type'=>'any');
 		$queryArgs = wp_parse_args($queryArgs, $defaults);
-		$children = $this->queryManager->query($queryArgs);
+		$children = self::$queryManager->query($queryArgs);
 
 		$postTypes = $queryArgs['post_type'];
 
@@ -581,7 +593,7 @@ abstract class Post
 		foreach($this->childPostTypes() as $postType=>$class){
 			foreach ($postTypes as $p) {
 				if ($p == 'any' || ($p != 'none' && $p == $postType)) {
-					$rootsQuery = $this->queryManager->query(array('post_parent' => self::postTypeParentId()));
+					$rootsQuery = self::$queryManager->query(array('post_parent' => self::postTypeParentId()));
 					$posts = array_merge($posts, $rootsQuery->posts);
 				}
 			}
@@ -597,7 +609,7 @@ abstract class Post
 	public function childPostTypes()
 	{
 		$names = array();
-		foreach ($this->oowp()->postTypeMapping() as $postType=>$class) {
+		foreach (self::$postManager->postTypeMapping() as $postType=>$class) {
 			if ($class::postTypeParentId() == $this->ID) {
 				$names[$postType] = $class;
 			}
@@ -622,9 +634,8 @@ abstract class Post
 	{
 		// todo: move to another class
 		$names = array();
-		$oowp = self::oowp();
 		foreach(self::connectedPostTypes() as $post_type){
-			$names[] = $oowp->postTypeClass($post_type);
+			$names[] = self::$postManager->postTypeClass($post_type);
 		}
 		return $names;
 	}
@@ -664,10 +675,6 @@ abstract class Post
 	 */
 	public function robots(){
 		return "";
-	}
-
-	public static function oowp() {
-		return Oowp::getInstance();
 	}
 
 
@@ -716,7 +723,7 @@ abstract class Post
 	}
 
 	function printPartial($partial, $args = array()) {
-		$this->oowp()->renderer()->printPost($this, $partial, $args);
+		self::$postManager->renderer()->printPost($this, $partial, $args);
 	}
 
 	/***
@@ -743,7 +750,7 @@ abstract class Post
 	 * @return bool true if this is an ancestor of the page currently being viewed
 	 */
 	public function isCurrentPage() {
-		$x = Post::getQueriedObject();
+		$x = $this->getQueriedObject();
 		if (isset($x) && $x->ID == $this->ID) return true;
 
 		return false;
@@ -752,7 +759,7 @@ abstract class Post
 	 * @return bool true if this is an ancestor of the page currently being viewed
 	 */
 	public function isCurrentPageParent() {
-		$x = Post::getQueriedObject();
+		$x = $this->getQueriedObject();
 		if (isset($x) && ($x->post_parent == $this->ID || $x->postTypeParentId() == $this->ID)) return true;
 
 		return false;
@@ -761,7 +768,7 @@ abstract class Post
 	 * @return bool true if this is an ancestor of the page currently being viewed
 	 */
 	public function isCurrentPageAncestor() {
-		$x = Post::getQueriedObject();
+		$x = $this->getQueriedObject();
 		while (isset($x) && $x) {
 			if ($x->ID == $this->ID) return true;
 			$x = $x->parent();
@@ -815,7 +822,7 @@ abstract class Post
 	 */
 	public function attachments(){
 		$queryArgs = array( 'post_type' => 'attachment', 'numberposts' => -1, 'post_status' => 'inherit', 'post_parent' => $this->ID );
-		return $this->queryManager->query($queryArgs);
+		return self::$queryManager->query($queryArgs);
 	}
 
 	protected function listToString($posts, $without_links = false){
@@ -849,43 +856,10 @@ abstract class Post
 	}
 
 	/**
-	 * @static Registers the post type (if not a built-in type), by calling getRegistrationArgs,
-	 * then enables customisation of the admin screens for the post type
-	 * @return null|object|WP_Error
-	 */
-	public static final function register() {
-		$postType = static::postType();
-		if ($postType == 'page' || $postType == 'post' || $postType == 'attachment' ) {
-			$var = null;
-		} else {
-			$defaults = array(
-				'labels'	  => oowp_generate_labels(static::friendlyName(), static::friendlyNamePlural()),
-				'public'	  => true,
-				'has_archive' => true,
-				'rewrite'	 => array('slug'	  => $postType,
-					'with_front'=> false),
-				'show_ui'	 => true,
-				'supports'	=> array(
-					'title',
-					'editor',
-					'revisions',
-				)
-			);
-			$registrationArgs	 = static::getRegistrationArgs($defaults);
-			$var	  = register_post_type($postType, $registrationArgs);
-		}
-		$class = get_called_class();
-		add_filter("manage_edit-{$postType}_columns", array($class, 'addCustomAdminColumns_internal'));
-		add_action("manage_{$postType}_posts_custom_column", array($class, 'printCustomAdminColumn_internal'), 10, 2);
-		add_action('right_now_content_table_end', array($class, 'addRightNowCount'));
-		return $var;
-	}
-
-	/**
 	 * @static
 	 * append the count(s) to the end of the 'right now' box on the dashboard
 	 */
-	static function addRightNowCount() {
+	public static function addRightNowCount() {
 		$postType = static::postType();
 		if ($postType != 'post' && $postType != 'page') {
 			$singular = static::friendlyName();
@@ -927,8 +901,7 @@ abstract class Post
 		// try to get the post from the cache, to minimise re-fetching
 		if (!isset(Post::$_staticCache[$key]) || Post::$_staticCache[$key]->ID != $post_id) {
 			$status = empty($_GET['post_status']) ? 'publish' : $_GET['post_status'];
-			//todo
-			$query = $this->queryManager->query(array('p'=>$post_id, 'posts_per_page'=>1, 'post_status'=>$status));
+			$query = self::$queryManager->query(array('p'=>$post_id, 'posts_per_page'=>1, 'post_status'=>$status));
 			Post::$_staticCache[$key] = ($query->post_count ? $query->post : null);
 		}
 		if (Post::$_staticCache[$key]) {
@@ -954,16 +927,15 @@ abstract class Post
 	static function printCustomAdminColumn($column, $post) { /* do nothing */ }
 
 	/**
-	 * @static
 	 * Gets the queried object (i.e. the post/page currently being viewed)
 	 * @return null|Post
 	 */
-	static function getQueriedObject() {
+	public function getQueriedObject() {
 		global $ooQueriedObject;
 		if (!isset($ooQueriedObject)) {
 			global $wp_the_query;
 			$id = $wp_the_query->get_queried_object_id();
-			$ooQueriedObject = $id ? Post::fetchById($id) : null;
+			$ooQueriedObject = $id ? self::$queryManager->find($id) : null;
 		}
 		return $ooQueriedObject;
 	}
@@ -1031,7 +1003,7 @@ abstract class Post
 		if ($data) {
 			$postData = self::getPostObject($data);
 			if ($postData) {
-				$className = self::oowp()->postTypeClass($postData->post_type);
+				$className = self::$postManager->postTypeClass($postData->post_type);
 				if ($className == get_class($postData)) {
 					return $postData;
 				} else {
@@ -1042,72 +1014,64 @@ abstract class Post
 		return null;
 	}
 
-//	/**
-//	 * Factory method for creating a post of the appropriate Post subclass, for the given post ID
-//	 * @static
-//	 * @param $ids int|int[]
-//	 * @throws \Exception
-//	 * @return Post|OowpQuery|null
-//	 */
-//	public static function fetchById($ids) {
-//		if (is_array($ids) && $ids){
-//			return new OowpQuery(array('post__in' => $ids));
-//		}elseif($ids){
-//			return static::fetchOne(array('p' => $ids));
-//		}else{
-//			throw new \Exception("no Ids supplied to Post::fetchById()");
-//		}
-//	}
-//
-//	public static function fetchBySlug($slug){
-//		return static::fetchOne(array(
-//			'name' => $slug,
-//			'post_type' => static::postType(),
-//			'numberposts' => 1
-//		));
-//	}
-//
-//	/**
-//	 * @static
-//	 * @param array $queryArgs - accepts a wp_query $queryArgs array which overwrites the defaults
-//	 * @return OowpQuery
-//	 */
-//	public static function fetchAll($queryArgs = array())
-//	{
-//		$defaults = array(
-//			'post_type' => static::postType()
-//		);
-//		if (static::isHierarchical()) {
-//			$defaults['orderby'] = 'menu_order';
-//			$defaults['order'] = 'asc';
-//		}
-//
-//		$queryArgs = wp_parse_args($queryArgs, $defaults);
-//		$query	= new OowpQuery($queryArgs);
-//
-//		return $query;
-//	}
-//
-//	/**
-//	 * @deprecated
-//	 */
-//	static function fetchAllQuery($queryArgs = array())
-//	{
-//		return static::fetchAll($queryArgs);
-//	}
-//
-//	/**
-//	 * @static
-//	 * @return null|Post
-//	 */
-//	static function fetchHomepage() {
-//		$key = 'homepage';
-//		if (!array_key_exists($key, Post::$_staticCache)) {
-//			$id = get_option('page_on_front');
-//			Post::$_staticCache[$key] = $id ? self::fetchById($id) : null;
-//		}
-//		return Post::$_staticCache[$key];
-//	}
+	/**
+	 * Factory method for creating a post of the appropriate Post subclass, for the given post ID
+	 * @static
+	 * @param $ids int|int[]
+	 * @throws \Exception
+	 * @return Post|OowpQuery|null
+	 */
+	public static function fetchById($ids) {
+		if (is_array($ids) && $ids){
+			return self::$queryManager->query(array('post__in' => $ids));
+		}elseif($ids){
+			return static::fetchOne(array('p' => $ids));
+		}else{
+			throw new \Exception("no Ids supplied to Post::fetchById()");
+		}
+	}
+
+	public static function fetchBySlug($slug){
+		return static::fetchOne(array(
+			'name' => $slug,
+			'post_type' => static::postType(),
+			'numberposts' => 1
+		));
+	}
+
+	/**
+	 * @static
+	 * @param array $queryArgs - accepts a wp_query $queryArgs array which overwrites the defaults
+	 * @return OowpQuery
+	 */
+	public static function fetchAll($queryArgs = array())
+	{
+		$defaults = array(
+			'post_type' => static::postType()
+		);
+		if (static::isHierarchical()) {
+			$defaults['orderby'] = 'menu_order';
+			$defaults['order'] = 'asc';
+		}
+
+		$queryArgs = wp_parse_args($queryArgs, $defaults);
+		$query	= self::$queryManager->query($queryArgs);
+
+		return $query;
+	}
+
+	/**
+	 * @static
+	 * @return null|Post
+	 */
+	static function fetchHomepage() {
+		$key = 'homepage';
+		if (!array_key_exists($key, Post::$_staticCache)) {
+			$id = get_option('page_on_front');
+			Post::$_staticCache[$key] = $id ? self::fetchById($id) : null;
+		}
+		return Post::$_staticCache[$key];
+	}
 
 	/**
 	 * @return bool true if this is the site homepage
@@ -1116,31 +1080,31 @@ abstract class Post
 		return $this->ID == get_option('page_on_front');
 	}
 
-//	/**
-//	 * Return the first post matching the arguments
-//	 * @static
-//	 * @param $queryArgs
-//	 * @return null|Post
-//	 */
-//	static function fetchOne($queryArgs)
-//	{
-//		$queryArgs['posts_per_page'] = 1;
-//		$query = new OowpQuery($queryArgs);
-//		return $query->posts ? $query->post : null;
-//	}
-//
-//	/**
-//	 * @static Returns the roots of this post type (i.e those whose post_parent is self::postTypeParentId)
-//	 * @param array $queryArgs
-//	 * @return OowpQuery
-//	 */
-//	static function fetchRoots($queryArgs = array())
-//	{
-//		#todo perhaps the post_parent should be set properly in the database
-////		$queryArgs['post_parent'] = static::postTypeParentId();
-//		$queryArgs['post_parent'] = self::postTypeParentId();
-//		return static::fetchAll($queryArgs);
-//	}
+	/**
+	 * Return the first post matching the arguments
+	 * @static
+	 * @param $queryArgs
+	 * @return null|Post
+	 */
+	static function fetchOne($queryArgs)
+	{
+		$queryArgs['posts_per_page'] = 1;
+		$query = self::$queryManager->query($queryArgs);
+		return $query->posts ? $query->post : null;
+	}
+
+	/**
+	 * @static Returns the roots of this post type (i.e those whose post_parent is self::postTypeParentId)
+	 * @param array $queryArgs
+	 * @return OowpQuery
+	 */
+	static function fetchRoots($queryArgs = array())
+	{
+		#todo perhaps the post_parent should be set properly in the database
+//		$queryArgs['post_parent'] = static::postTypeParentId();
+		$queryArgs['post_parent'] = self::postTypeParentId();
+		return static::fetchAll($queryArgs);
+	}
 
 
 

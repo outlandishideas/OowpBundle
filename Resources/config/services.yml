@@ -4,6 +4,7 @@ services:
   outlandish_oowp.query_manager:
     class: Outlandish\OowpBundle\Manager\QueryManager
     arguments: [@outlandish_oowp.post_manager]
+
   outlandish_oowp.register_post_types:
     class: Outlandish\OowpBundle\EventListener\RegisterPostTypes
     calls:
@@ -12,6 +13,7 @@ services:
       - name: kernel.event_listener
         event: kernel.request
         method: onKernelRequest
+
   outlandish_oowp.helper.menu:
     class: Outlandish\OowpBundle\Helper\MenuHelper
     arguments: [@outlandish_oowp.query_manager, @outlandish_oowp.post_manager, @templating]
