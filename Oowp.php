@@ -111,14 +111,12 @@ class Oowp {
 			}, '99', 2); // use large priority value to ensure this happens after ACF finishes saving its metadata
 		}
 
-		$this->enqueueStylesAndScripts(is_admin());
-
 		if (is_admin()) {
 			$pages = $this->hiddenAdminMenuPages;
 			$wpAdminHelper = $this->wpHelper()->adminHelper();
 			$this->wpHelper()->addAction('admin_menu', function() use ($pages, $wpAdminHelper) {
 				foreach ($pages as $page) {
-					$wpAdminHelper->removeMenuPage($page);
+					remove_menu_page($page);
 				}
 			});
 		}
@@ -141,6 +139,7 @@ class Oowp {
 	 * - icon-{post_type}-menu-active (for menu items when active/hovered)
 	 */
 	function generateAdminCss($resourcesDir, $resourcesUrl) {
+		//todo include from somewhere
 		$dir = $resourcesDir . 'images/';
 		$selectors = array();
 		$patterns = array(
@@ -182,15 +181,6 @@ class Oowp {
 			}
 		}
 		return $css;
-	}
-
-	protected function enqueueStylesAndScripts($isAdmin) {
-		$url = plugin_dir_url(__FILE__);
-		$wpHelper = $this->wpHelper();
-		if ($isAdmin) {
-			$wpHelper->enqueueScript('oowp_admin_js', $url . '/Resources/public/js/oowp-admin.js', array('jquery'), false, true);
-			$wpHelper->enqueueStyle('oowp_admin_css', $url . '/Resources/public/css/oowp-admin.css');
-		}
 	}
 
 	protected function generateLabels($singular, $plural = null) {

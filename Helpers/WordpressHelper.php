@@ -274,7 +274,7 @@ class WordpressHelper {
 
 				$adminHelper = $this->adminHelper();
 				add_action('admin_menu', function() use ($postType, $adminHelper) {
-					$adminHelper->removeMenuPage('edit.php' . ($postType == 'post' ? "" : "?post_type=$postType"));
+					remove_menu_page('edit.php' . ($postType == 'post' ? "" : "?post_type=$postType"));
 				}, $postType);
 				return true;
 			}

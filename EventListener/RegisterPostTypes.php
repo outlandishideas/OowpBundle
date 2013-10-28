@@ -14,12 +14,12 @@ class RegisterPostTypes {
 	 */
 	private $postManager;
 
-	public function onKernelRequest(GetResponseEvent $event) {
-		$this->postManager->init();
+	public function __construct(Oowp $postManager) {
+		$this->postManager = $postManager;
 	}
 
-	public function setPostManager(Oowp $postManager) {
-		$this->postManager = $postManager;
+	public function onKernelRequest(GetResponseEvent $event) {
+		$this->postManager->init();
 	}
 
 } 

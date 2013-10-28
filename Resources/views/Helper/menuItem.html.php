@@ -13,7 +13,11 @@
 				<?php
 				$menuArgs->current_depth++;
 				foreach($children as $child){
-					$oowp->renderer()->printPost($child, 'menu_item', $args);
+					echo $view->render('OutlandishOowpBundle:Helper:menuItem.html.php', array(
+						'post' => $child,
+						'queryArgs' => $queryArgs,
+						'menuArgs' => $menuArgs
+					));
 				}
 				$menuArgs->current_depth--;
 				?>

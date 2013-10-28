@@ -85,6 +85,7 @@ abstract class Post
 	 * Converts the data into a wordpress post object
 	 * @static
 	 * @param mixed $data
+	 * @throws \RuntimeException
 	 * @return \WP_Post
 	 */
 	public static function getPostObject($data)
@@ -101,9 +102,7 @@ abstract class Post
 		} else if (is_numeric($data) && is_integer($data+0)) {
 			return get_post($data);
 		} else {
-			//TODO: should this throw an exception instead?
-			global $post;
-			return $post;
+			throw new \RuntimeException('Unable to convert to post object');
 		}
 	}
 
@@ -139,8 +138,7 @@ abstract class Post
 			setup_postdata($this);
 			return call_user_func_array($name, $args);
 		} else {
-			trigger_error('Attempt to call non existenty method ' . $name . ' on class ' . get_class($this));
-			return null;
+			throw new \RuntimeException('Attempt to call non existenty method ' . $name . ' on class ' . get_class($this));
 		}
 	}
 
@@ -246,32 +244,6 @@ abstract class Post
 	public static function friendlyNamePlural() {
 		return static::friendlyName() . 's';
 	}
-
-	/**
-	 * Gets all terms associated with this post, indexed by their taxonomy.
-	 * @param null $taxonomies - restrict to only one or more taxonomies
-	 * @param bool $includeEmpty - return empty
-	 * @return array - term objects
-	 */
-	/*	public function terms($taxonomies = null, $includeEmpty = false)
-	 {
-		 if (!$taxonomies) {
-			 $taxonomies = ooTaxonomy::fetchAllNames();
-		 } else if (!is_array($taxonomies)) {
-			 $taxonomies = array($taxonomies);
-		 }
-		 $terms = array();
-		 foreach ($taxonomies as $taxonomy) {
-			 $currentTerms = wp_get_post_terms($this->ID, $taxonomy);
-			 if ($currentTerms || $includeEmpty) {
-				 foreach ($currentTerms as $term) {
-					 $terms[] = ooTerm::fetch($term);
-
-				 }
-			 }
-		 }
-		 return $terms;
-	 }*/
 
 	/**
 	 * @deprecated Alias of connected
@@ -703,43 +675,6 @@ abstract class Post
 		return implode(', ', $links);
 	}
 
-	// functions for printing with each of the provided partial files
-	public function printSidebar() { $this->printPartial('sidebar'); }
-	public function printMain() { $this->printPartial('main'); }
-	public function printItem() { $this->printPartial('item'); }
-
-	/**
-	 * Prints the partial into an html string, which is returned
-	 * @param $partialType
-	 * @return string
-	 */
-	public final function getPartial($partialType)
-	{
-		ob_start();
-		$this->printPartial($partialType);
-		$html = ob_get_contents();
-		ob_end_flush();
-		return $html;
-	}
-
-	function printPartial($partial, $args = array()) {
-		self::$postManager->renderer()->printPost($this, $partial, $args);
-	}
-
-	/***
-	 * Alias for printPartial() - only used for turning this post into html
-	 *
-	 * @param $partialType - string
-	 */
-	public function printAsHtml($partialType)
-	{
-		$this->printPartial($partialType);
-	}
-
-	public function toHtml($partialType)
-	{
-		$this->getPartial($partialType);
-	}
 
 	function htmlAuthorLink()
 	{
@@ -1049,7 +984,7 @@ abstract class Post
 		$defaults = array(
 			'post_type' => static::postType()
 		);
-		if (static::isHierarchical()) {
+		if (is_post_type_hierarchical($defaults['post_type'])) {
 			$defaults['orderby'] = 'menu_order';
 			$defaults['order'] = 'asc';
 		}
