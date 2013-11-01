@@ -3,11 +3,16 @@ services:
   outlandish_oowp.post_manager:
     class: Outlandish\OowpBundle\Oowp
 
-  #override Routemaster query manager
+  # override Routemaster query manager
   outlandish_routemaster.query_manager:
     class: Outlandish\OowpBundle\Manager\QueryManager
     arguments: [@outlandish_oowp.post_manager]
 
+  # create alias in case you forget which bundle this is from
+  outlandish_oowp.query_manager:
+    alias: outlandish_routemaster.query_manager
+
+  # register post types on kernel request or on WP init hook
   outlandish_oowp.register_post_types:
     class: Outlandish\OowpBundle\EventListener\RegisterPostTypes
     arguments: [@outlandish_oowp.post_manager]
@@ -15,6 +20,20 @@ services:
       - name: kernel.event_listener
         event: kernel.request
         method: onKernelRequest
+      - name: kernel.event_listener
+        event: outlandish_routemaster.wp_init
+        method: onKernelRequest
+
+  # inject JS/CSS assets into WP admin pages
+  outlandish_oowp.admin_assets:
+    class: Outlandish\OowpBundle\EventListener\AdminAssets
+    calls:
+      - [setHelper, ['@templating.helper.assets']]
+    scope: request
+    tags:
+      - name: kernel.event_listener
+        event: outlandish_routemaster.wp_init
+        method: onInit
 
   outlandish_oowp.helper.menu:
     class: Outlandish\OowpBundle\Helper\MenuHelper
@@ -22,6 +41,7 @@ services:
     tags:
       - name: templating.helper
         alias: menu
+
   outlandish_oowp.helper.paginator:
     class: Outlandish\OowpBundle\Helper\PaginatorHelper
     arguments: [@outlandish_routemaster.query_manager]

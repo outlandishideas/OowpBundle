@@ -213,13 +213,6 @@ class WordpressHelper {
 		return $current_user;
 	}
 
-	public function adminHelper() {
-		if (!$this->adminHelper) {
-			$this->adminHelper = new WordpressAdminHelper();
-		}
-		return $this->adminHelper;
-	}
-
 	/** @see add_action */
 	public function addAction($tag, $functionToAdd, $priority = 10, $acceptedArgs = 1) {
 		add_action($tag, $functionToAdd, $priority, $acceptedArgs);
@@ -272,8 +265,7 @@ class WordpressHelper {
 			if (isset($wp_post_types[$postType])) {
 				unset($wp_post_types[$postType]);
 
-				$adminHelper = $this->adminHelper();
-				add_action('admin_menu', function() use ($postType, $adminHelper) {
+				add_action('admin_menu', function() use ($postType) {
 					remove_menu_page('edit.php' . ($postType == 'post' ? "" : "?post_type=$postType"));
 				}, $postType);
 				return true;

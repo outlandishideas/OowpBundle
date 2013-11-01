@@ -802,10 +802,30 @@ abstract class Post
 
 			$numPosts = wp_count_posts($postType);
 
-			oowp_print_right_now_count($numPosts->publish, $postType, $singular, $plural);
+			self::printRightNowCount($numPosts->publish, $postType, $singular, $plural);
 			if ($numPosts->pending > 0) {
-				oowp_print_right_now_count($numPosts->pending, $postType, $singular . ' Pending', $plural . ' Pending', 'pending');
+				self::printRightNowCount($numPosts->pending, $postType, $singular . ' Pending', $plural . ' Pending', 'pending');
 			}
+		}
+	}
+
+	public static function printRightNowCount($count, $postType, $singular, $plural, $status = null) {
+		if (get_post_type_object($postType)->show_ui) {
+			$num = number_format_i18n($count);
+			$text = _n($singular, $plural, intval($count));
+			if (current_user_can('edit_posts')) {
+				$link = 'edit.php?post_type=' . $postType;
+				if ($status) {
+					$link .= '&post_status=' . $status;
+				}
+				$num = "<a href='$link'>$num</a>";
+				$text = "<a href='$link'>$text</a>";
+			}
+
+			echo '<tr>';
+			echo '<td class="first b b-' . $postType . '">' . $num . '</td>';
+			echo '<td class="t ' . $postType . '">' . $text . '</td>';
+			echo '</tr>';
 		}
 	}
 

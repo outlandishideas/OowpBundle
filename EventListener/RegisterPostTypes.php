@@ -18,7 +18,7 @@ class RegisterPostTypes {
 		$this->postManager = $postManager;
 	}
 
-	public function onKernelRequest(GetResponseEvent $event) {
+	public function onKernelRequest() {
 		$this->postManager->init();
 	}
 

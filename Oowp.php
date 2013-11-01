@@ -4,7 +4,6 @@
 namespace Outlandish\OowpBundle;
 
 
-use Outlandish\OowpBundle\Helpers\Renderer;
 use Outlandish\OowpBundle\Helpers\WordpressHelper;
 use Outlandish\OowpBundle\PostType\Post;
 
@@ -18,11 +17,6 @@ class Oowp {
 
 	/** @var WordpressHelper */
 	protected $wpHelper;
-	/** @var Renderer */
-	protected $renderer;
-
-	public function __construct() {
-	}
 
 	/**
 	 * Initialises OOWP with the given (fully qualified) post type classes
@@ -41,13 +35,6 @@ class Oowp {
 		return $this->wpHelper;
 	}
 
-	public function renderer() {
-		if (!$this->renderer) {
-			$this->renderer = new Renderer();
-			$this->renderer->addPath($this->renderer->defaultPath(), 0);
-		}
-		return $this->renderer;
-	}
 
 	/**
 	 * Registers all of the post types in the $classes array
@@ -83,7 +70,6 @@ class Oowp {
 			$args = $class::getRegistrationArgs($args);
 			register_post_type($postType, $args);
 			$this->postTypeMapping[$postType] = $class;
-			$class = get_called_class();
 			add_filter("manage_edit-{$postType}_columns", "$class::addCustomAdminColumns_internal");
 			add_action("manage_{$postType}_posts_custom_column", "$class::printCustomAdminColumn_internal", 10, 2);
 			add_action('right_now_content_table_end', "$class::addRightNowCount");
@@ -113,8 +99,7 @@ class Oowp {
 
 		if (is_admin()) {
 			$pages = $this->hiddenAdminMenuPages;
-			$wpAdminHelper = $this->wpHelper()->adminHelper();
-			$this->wpHelper()->addAction('admin_menu', function() use ($pages, $wpAdminHelper) {
+			add_action('admin_menu', function() use ($pages) {
 				foreach ($pages as $page) {
 					remove_menu_page($page);
 				}
