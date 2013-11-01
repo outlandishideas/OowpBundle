@@ -4,17 +4,16 @@
 namespace Outlandish\OowpBundle\EventListener;
 
 
-use Outlandish\OowpBundle\Oowp;
-use Symfony\Component\HttpKernel\Event\GetResponseEvent;
+use Outlandish\OowpBundle\Manager\PostManager;
 
 class RegisterPostTypes {
 
 	/**
-	 * @var Oowp
+	 * @var PostManager
 	 */
 	private $postManager;
 
-	public function __construct(Oowp $postManager) {
+	public function __construct(PostManager $postManager) {
 		$this->postManager = $postManager;
 	}
 

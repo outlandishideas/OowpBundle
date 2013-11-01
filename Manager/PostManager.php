@@ -1,13 +1,13 @@
 <?php
 
 
-namespace Outlandish\OowpBundle;
+namespace Outlandish\OowpBundle\Manager;
 
 
 use Outlandish\OowpBundle\Helpers\WordpressHelper;
 use Outlandish\OowpBundle\PostType\Post;
 
-class Oowp {
+class PostManager {
 
 	protected $postTypeMapping = array();
 	protected $hiddenAdminMenuPages = array(

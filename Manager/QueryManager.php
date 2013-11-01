@@ -5,11 +5,11 @@ namespace Outlandish\OowpBundle\Manager;
 
 
 use Outlandish\OowpBundle\Helpers\OowpQuery;
-use Outlandish\OowpBundle\Oowp;
+use Outlandish\OowpBundle\Manager\PostManager;
 
 class QueryManager extends \Outlandish\RoutemasterBundle\Manager\QueryManager {
 
-	public function __construct(Oowp $postManager) {
+	public function __construct(PostManager $postManager) {
 		$this->postManager = $postManager;
 	}
 

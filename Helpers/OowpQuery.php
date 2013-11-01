@@ -3,13 +3,13 @@
 namespace Outlandish\OowpBundle\Helpers;
 
 use Outlandish\OowpBundle\Manager\QueryManager;
-use Outlandish\OowpBundle\Oowp;
+use Outlandish\OowpBundle\Manager\PostManager;
 use Outlandish\OowpBundle\PostType\Post;
 
 class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \Countable
 {
 	/**
-	 * @var Oowp
+	 * @var PostManager
 	 */
 	protected $postManager;
 
@@ -20,7 +20,7 @@ class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \
 
 	/**
 	 * @param string|array $query
-	 * @param Oowp $postManager
+	 * @param PostManager $postManager
 	 * @param $queryManager
 	 */
 	function __construct($query = '', $postManager, $queryManager) {

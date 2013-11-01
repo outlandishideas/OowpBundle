@@ -4,48 +4,180 @@ namespace Outlandish\OowpBundle\PostType;
 use Outlandish\OowpBundle\Helpers\ArrayHelper;
 use Outlandish\OowpBundle\Helpers\OowpQuery;
 use Outlandish\OowpBundle\Manager\QueryManager;
-use Outlandish\OowpBundle\Oowp;
+use Outlandish\OowpBundle\Manager\PostManager;
 
 /**
  * This class contains functions which are shared across all post types, and across all sites.
  *
  * These properties of WP_Post are proxied here.
- * @property int $ID;
- * @property int $post_author
- * @property string $post_date
- * @property string $post_date_gmt
- * @property string $post_content
- * @property string $post_title
- * @property string $post_excerpt
- * @property string $post_status
- * @property string $comment_status
- * @property string $ping_status
- * @property string $post_password
- * @property string $post_name
- * @property string $to_ping
- * @property string $pinged
- * @property string $post_modified
- * @property string $post_modified_gmt
- * @property string $post_content_filtered
- * @property int $post_parent
- * @property string $guid
- * @property int $menu_order
- * @property string $post_type
- * @property string $post_mime_type
- * @property int $comment_count
- * @property string $filter
  * @property array $ancestors
  * @property string $page_template
  */
 abstract class Post
 {
+
+	/**
+	 *
+	 * @var int
+	 */
+	public $ID;
+
+	/**
+	 *
+	 * @var int
+	 */
+	public $post_author = 0;
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_date = '0000-00-00 00:00:00';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_date_gmt = '0000-00-00 00:00:00';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_content = '';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_title = '';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_excerpt = '';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_status = 'publish';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $comment_status = 'open';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $ping_status = 'open';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_password = '';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_name = '';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $to_ping = '';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $pinged = '';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_modified = '0000-00-00 00:00:00';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_modified_gmt = '0000-00-00 00:00:00';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_content_filtered = '';
+
+	/**
+	 *
+	 * @var int
+	 */
+	public $post_parent = 0;
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $guid = '';
+
+	/**
+	 *
+	 * @var int
+	 */
+	public $menu_order = 0;
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_type = 'post';
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $post_mime_type = '';
+
+	/**
+	 *
+	 * @var int
+	 */
+	public $comment_count = 0;
+
+	/**
+	 *
+	 * @var string
+	 */
+	public $filter;
+
+	/**
+	 * Private variable used by post formats to cache parsed content.
+	 *
+	 * @since 3.6.0
+	 *
+	 * @var array
+	 * @access private
+	 */
+	public $format_content;
+
+
 	/**
 	 * This must be overridden in subclasses
 	 */
 	protected static $postType = 'post';
 
 	/**
-	 * @var Oowp
+	 * @var PostManager
 	 */
 	protected static $postManager = null;
 	/**
@@ -71,9 +203,12 @@ abstract class Post
 	{
 		//Make sure it's an object
 		$this->post = self::getPostObject($data);
+		foreach (get_object_vars($this->post) as $key => $val) {
+			$this->$key = $val;
+		}
 	}
 
-	public static function setPostManager(Oowp $postManager) {
+	public static function setPostManager(PostManager $postManager) {
 		self::$postManager = $postManager;
 	}
 
@@ -100,7 +235,7 @@ abstract class Post
 				return new \WP_Post($data);
 			}
 		} else if (is_numeric($data) && is_integer($data+0)) {
-			return get_post($data);
+			return self::$queryManager->find($data);
 		} else {
 			throw new \RuntimeException('Unable to convert to post object');
 		}
@@ -935,17 +1070,6 @@ abstract class Post
 
 		$parameters = wp_parse_args($parameters, $defaults);
 		p2p_register_connection_type($parameters);
-	}
-
-	/**
-	 * @static factory class creates a post of the appropriate Post subclass, populated with the given data
-	 * @param null $data
-	 * @return Post - an Post object or subclass if it exists
-	 * @deprecated Use Post::createPostObject()
-	 */
-	public static function fetch($data = null)
-	{
-		return self::createPostObject($data);
 	}
 
 	/**

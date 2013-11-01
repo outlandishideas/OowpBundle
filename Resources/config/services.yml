@@ -1,7 +1,7 @@
 services:
 
   outlandish_oowp.post_manager:
-    class: Outlandish\OowpBundle\Oowp
+    class: Outlandish\OowpBundle\Manager\PostManager
 
   # override Routemaster query manager
   outlandish_routemaster.query_manager:
@@ -27,9 +27,7 @@ services:
   # inject JS/CSS assets into WP admin pages
   outlandish_oowp.admin_assets:
     class: Outlandish\OowpBundle\EventListener\AdminAssets
-    calls:
-      - [setHelper, ['@templating.helper.assets']]
-    scope: request
+    arguments: [@templating.engine.php]
     tags:
       - name: kernel.event_listener
         event: outlandish_routemaster.wp_init
