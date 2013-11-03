@@ -1,9 +1,10 @@
 <?php
 
 namespace Outlandish\OowpBundle\PostType;
+
 use Outlandish\OowpBundle\Helpers\ArrayHelper;
 use Outlandish\OowpBundle\Helpers\OowpQuery;
-use Outlandish\OowpBundle\Manager\QueryManager;
+use Outlandish\RoutemasterBundle\Manager\QueryManager;
 use Outlandish\OowpBundle\Manager\PostManager;
 
 /**
