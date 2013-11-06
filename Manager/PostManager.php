@@ -78,10 +78,7 @@ class PostManager {
 	}
 
 	/**
-	 * Hooks into various wordpress events:
-	 * - post save events
-	 * - adding css/js scripts
-	 * - modifying admin menu
+	 * Hooks into various wordpress events
 	 */
 	protected function addWordpressHooks() {
 		// call the appropriate onSave function when a post is saved
@@ -97,7 +94,20 @@ class PostManager {
 			}, '99', 2); // use large priority value to ensure this happens after ACF finishes saving its metadata
 		}
 
+		//override permalinks
+		add_filter('post_type_link', function($post_link, $post, $leavename, $sample) {
+			static $permalinkHookPostId;
+			if ($post->post_name && $post->ID != $permalinkHookPostId) {
+				// prevent infinite recursion by saving the ID before calling permalink() (which may come back here again)
+				$permalinkHookPostId = $post->ID;
+				$post_link = Post::createPostObject($post)->permalink($leavename);
+				$permalinkHookPostId = null;
+			}
+			return $post_link;
+		}, 10, 4);
+
 		if (is_admin()) {
+			//hide certain admin pages from menu
 			$pages = $this->hiddenAdminMenuPages;
 			add_action('admin_menu', function() use ($pages) {
 				foreach ($pages as $page) {
