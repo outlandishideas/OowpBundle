@@ -46,3 +46,9 @@ services:
     tags:
       - name: templating.helper
         alias: paginator
+
+  outlandish_oowp.helper.wp:
+    class: Outlandish\OowpBundle\Helper\WordpressHelper
+    tags:
+      - name: templating.helper
+        alias: wp

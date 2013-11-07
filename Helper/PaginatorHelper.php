@@ -2,7 +2,7 @@
 
 namespace Outlandish\OowpBundle\Helper;
 
-use Outlandish\OowpBundle\Helpers\OowpQuery;
+use Outlandish\OowpBundle\Query\OowpQuery;
 use Outlandish\OowpBundle\Manager\QueryManager;
 use Symfony\Component\Templating\Helper\Helper;
 

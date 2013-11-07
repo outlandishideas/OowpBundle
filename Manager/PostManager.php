@@ -4,7 +4,7 @@
 namespace Outlandish\OowpBundle\Manager;
 
 
-use Outlandish\OowpBundle\Helpers\WordpressHelper;
+use Outlandish\OowpBundle\Helper\WordpressHelper;
 use Outlandish\OowpBundle\PostType\Post;
 
 class PostManager {

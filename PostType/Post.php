@@ -2,8 +2,8 @@
 
 namespace Outlandish\OowpBundle\PostType;
 
-use Outlandish\OowpBundle\Helpers\ArrayHelper;
-use Outlandish\OowpBundle\Helpers\OowpQuery;
+use Outlandish\OowpBundle\Util\ArrayHelper;
+use Outlandish\OowpBundle\Query\OowpQuery;
 use Outlandish\RoutemasterBundle\Manager\QueryManager;
 use Outlandish\OowpBundle\Manager\PostManager;
 
@@ -755,7 +755,7 @@ abstract class Post
 	 */
 	protected function callGlobalPost()
 	{
-		$args	 = func_get_args();
+		$args = func_get_args();
 		$callback = array_shift($args);
 		global $post;
 		$post = $this;
@@ -764,18 +764,15 @@ abstract class Post
 		wp_reset_postdata();
 		return $returnVal;
 	}
+
 	/**
 	 * @return mixed
 	 * @deprecated use wp_author() instead
 	 */
 	public function author()
 	{
-		return $this->callGlobalPost('get_the_author');
-	}
-
-	public function wp_author()
-	{
-		return $this->callGlobalPost('get_the_author');
+		$authordata = get_userdata($this->post_author);
+		return apply_filters('the_author', is_object($authordata) ? $authordata->display_name : null);
 	}
 
 	/**
@@ -809,12 +806,6 @@ abstract class Post
 			$links[] = $term->htmlLink();
 		}
 		return implode(', ', $links);
-	}
-
-
-	function htmlAuthorLink()
-	{
-		return $this->callGlobalPost('get_the_author_link');
 	}
 
 	/**

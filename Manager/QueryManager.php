@@ -4,7 +4,7 @@
 namespace Outlandish\OowpBundle\Manager;
 
 
-use Outlandish\OowpBundle\Helpers\OowpQuery;
+use Outlandish\OowpBundle\Query\OowpQuery;
 
 class QueryManager extends \Outlandish\RoutemasterBundle\Manager\QueryManager {
 

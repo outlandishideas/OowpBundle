@@ -1,11 +1,12 @@
 <?php
 
-namespace Outlandish\OowpBundle\Helpers;
+namespace Outlandish\OowpBundle\Helper;
 
-class WordpressHelper {
+use Symfony\Component\Templating\Helper\Helper;
+
+class WordpressHelper extends Helper {
 
 	private $acfFields = array();
-	private $adminHelper;
 
 	/** @see add_shortcode */
 	function addShortcode($tag, $callable) {
@@ -112,42 +113,6 @@ class WordpressHelper {
 			});
 		}
 	}
-
-	/**
-	 * Get oowp class name for requested post type
-	 * @param string $postType
-	 * @return null|string
-	 */
-//	public function postClass($postType) {
-//		global $_registeredPostClasses, $wp_post_types;
-//		if (!isset($wp_post_types[$postType])) {
-//			return null; //unregistered post type
-//		} elseif (!isset($_registeredPostClasses[$postType])) {
-//			return 'MiscPost'; //post type with no dedicated class
-//		} else {
-//			return $_registeredPostClasses[$postType];
-//		}
-//	}
-//
-//	public function postType($postClass) {
-//		global $_registeredPostClasses;
-//		foreach ($_registeredPostClasses as $type=>$class) {
-//			if ($class == $postClass) {
-//				return $type;
-//			}
-//		}
-//		return null;
-//	}
-//
-//	public function postTypeClasses() {
-//		global $_registeredPostClasses;
-//		return array_values($_registeredPostClasses);
-//	}
-//
-//	public function postTypes() {
-//		global $_registeredPostClasses;
-//		return array_keys($_registeredPostClasses);
-//	}
 
 	/**
 	 * @return \wpdb
@@ -272,5 +237,9 @@ class WordpressHelper {
 			}
 			return false;
 		}
+	}
+
+	public function getName() {
+		return 'wp';
 	}
 }

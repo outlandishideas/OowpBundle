@@ -1,6 +1,6 @@
 <?php
 
-namespace Outlandish\OowpBundle\Helpers;
+namespace Outlandish\OowpBundle\Query;
 
 use Outlandish\OowpBundle\Manager\PostManager;
 use Outlandish\OowpBundle\PostType\Post;
