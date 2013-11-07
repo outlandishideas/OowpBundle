@@ -6,6 +6,9 @@ namespace Outlandish\OowpBundle\Manager;
 
 use Outlandish\OowpBundle\Helper\WordpressHelper;
 use Outlandish\OowpBundle\PostType\Post;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 class PostManager {
 
@@ -15,14 +18,45 @@ class PostManager {
 		'link-manager.php'
 	);
 
-	/** @var WordpressHelper */
+	/**
+	 * @var WordpressHelper
+	 */
 	protected $wpHelper;
 
 	/**
-	 * Initialises OOWP with the given (fully qualified) post type classes
-	 * @param $classes
+	 * @var Kernel
 	 */
-	public function init($classes = array()) {
+	protected $kernel;
+
+	public function setKernel(KernelInterface $kernel) {
+		$this->kernel = $kernel;
+	}
+
+	/**
+	 * Initialises OOWP
+	 */
+	public function init() {
+
+		//todo: cache this stuff and maybe use annotations
+		$finder = new Finder();
+		$classes = array();
+		foreach ($this->kernel->getBundles() as $bundle) {
+
+			if ($bundle->getName() == 'OutlandishOowpBundle') continue;
+
+			//look for classes in PostType subnamespace
+			if (file_exists($bundle->getPath() . '/PostType')) {
+				foreach ($finder->files()->in($bundle->getPath() . '/PostType')->name('*.php') as $file) {
+					$class = $bundle->getNamespace() . '\\PostType\\' . $file->getBasename('.php');
+
+					//ignore abstract classes
+					$reflection = new \ReflectionClass($class);
+					if (!$reflection->isAbstract()) {
+						$classes[] = $class;
+					}
+				}
+			}
+		}
 		$this->registerPostTypes($classes);
 		$this->addWordpressHooks();
 		$this->postInit();

@@ -2,6 +2,8 @@ services:
 
   outlandish_oowp.post_manager:
     class: Outlandish\OowpBundle\Manager\PostManager
+    calls:
+      - [setKernel, [@kernel]]
 
   # override Routemaster query manager
   outlandish_routemaster.query_manager:
