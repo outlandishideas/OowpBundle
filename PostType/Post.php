@@ -171,12 +171,6 @@ abstract class Post
 	 */
 	public $format_content;
 
-
-	/**
-	 * This must be overridden in subclasses
-	 */
-	protected static $postType = 'post';
-
 	/**
 	 * @var PostManager
 	 */
@@ -362,7 +356,9 @@ abstract class Post
 	 */
 	public static function postType()
 	{
-		return static::$postType;
+		$class = get_called_class();
+		$class = substr($class, strrpos($class, '\\') + 1);
+		return self::underscore($class);
 	}
 
 	/**
@@ -1181,6 +1177,30 @@ abstract class Post
 
 
 #endregion
+
+	/**
+	 * Camelizes a string.
+	 *
+	 * @param string $id A string to camelize
+	 *
+	 * @return string The camelized string
+	 */
+	public static function camelize($id) {
+		return strtr(ucwords(strtr($id, array('_' => ' ', '.' => '_ '))), array(' ' => ''));
+	}
+
+	/**
+	 * A string to underscore.
+	 *
+	 * @param string $id The string to underscore
+	 *
+	 * @return string The underscored string
+	 */
+	public static function underscore($id) {
+		return strtolower(preg_replace(array('/([A-Z]+)([A-Z][a-z])/', '/([a-z\d])([A-Z])/'), array(
+			'\\1_\\2', '\\1_\\2'
+		), strtr($id, '_', '.')));
+	}
 
 
 }
