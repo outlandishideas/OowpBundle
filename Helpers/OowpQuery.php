@@ -2,10 +2,14 @@
 
 namespace Outlandish\OowpBundle\Helpers;
 
-use Outlandish\OowpBundle\Manager\QueryManager;
 use Outlandish\OowpBundle\Manager\PostManager;
 use Outlandish\OowpBundle\PostType\Post;
 
+/**
+ * Extend WP_Query to make it return Oowp Post objects instead of plain WP_Post objects.
+ *
+ * Also implements some array interfaces for convenience.
+ */
 class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \Countable
 {
 	/**
@@ -14,41 +18,21 @@ class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \
 	protected $postManager;
 
 	/**
-	 * @var QueryManager
-	 */
-	protected $queryManager;
-
-	/**
 	 * @param string|array $query
 	 * @param PostManager $postManager
-	 * @param $queryManager
+	 * @throws \RuntimeException
 	 */
-	function __construct($query = '', $postManager, $queryManager) {
-		global $wp_post_types;
-
+	function __construct($query = '', $postManager) {
 		$this->postManager = $postManager;
-		$this->queryManager = $queryManager;
-
-		$defaults = array(
-			'posts_per_page' => -1,
-			'post_status' => 'publish'
-		);
-		$query = wp_parse_args($query, $defaults);
-
-		// if there is no post type, or the post type is singular and isn't valid, replace it with 'any'
-		if (!isset($query['post_type']) || (!is_array($query['post_type']) && !array_key_exists($query['post_type'], $wp_post_types))) {
-			$query['post_type'] = 'any';
-		}
 
 		parent::__construct($query);
 
 		if ($this->query_vars['error']) {
-			//todo: throw exception
-			die('Query error ' . $this->query_vars['error']);
+			throw new \RuntimeException('Query error ' . $this->query_vars['error']);
 		}
 	}
 
-	/* Interfaces */
+	/* Interface methods */
 
 	public function getIterator() {
 		return new \ArrayIterator($this->posts);
@@ -117,7 +101,7 @@ class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \
 //	}
 
 	/**
-	 * Convert WP_Post objects to oowp Post objects
+	 * Convert WP_Post objects to Oowp Post objects
 	 * @return Post[]
 	 */
 	public function &get_posts() {
@@ -125,7 +109,7 @@ class OowpQuery extends \WP_Query implements \IteratorAggregate, \ArrayAccess, \
 
 		foreach ($this->posts as $i => $post) {
 			$classname = $this->postManager->postTypeClass($post->post_type);
-			$this->posts[$i] = new $classname($post, $this->postManager, $this->queryManager);
+			$this->posts[$i] = new $classname($post);
 		}
 
 		if (count($this->posts)) {

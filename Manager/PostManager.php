@@ -114,6 +114,28 @@ class PostManager {
 					remove_menu_page($page);
 				}
 			});
+
+			//make preview permalink resemble real permalink so that routing can work
+			//todo: move this to RouteMasterBundle
+			add_filter('preview_post_link', function ($link) {
+				$qs = parse_url($link, PHP_URL_QUERY);
+				$args = wp_parse_args($qs);
+
+				//only modify link of unpublished posts (published posts use preview_id param)
+				if (isset($args['p']) || isset($args['page_id'])) {
+					$id = isset($args['p']) ? $args['p'] : $args['page_id'];
+					$post = Post::createPostObject($id);
+					if ($post) {
+						$post->post_name = sanitize_title($post->post_name ? $post->post_name : $post->post_title, $post->ID);
+						$link = $post->permalink();
+						$link .= '?' . $qs;
+					}
+//					list($link, $slug) = get_sample_permalink($id);
+//					$link = preg_replace('/%(page|post)name%/', $slug, $link);
+				}
+
+				return $link;
+			});
 		}
 	}
 
