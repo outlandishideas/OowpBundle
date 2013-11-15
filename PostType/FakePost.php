@@ -8,7 +8,7 @@ namespace Outlandish\OowpBundle\PostType;
  * As Post is abstract, this class can be used for entities that have no real existence, e.g. 404 pages
  */
 class FakePost extends RoutemasterPost {
-	public function __construct($args = array(), $postManager, $queryManager) {
+	public function __construct($args = array()) {
 		//set defaults
 		$postArray = wp_parse_args($args, array(
 			'ID' => 0,
@@ -26,14 +26,14 @@ class FakePost extends RoutemasterPost {
 			$postArray['post_name'] = sanitize_title_with_dashes($postArray['post_title']);
 		}
 
-		parent::__construct($postArray, $postManager, $queryManager);
+		parent::__construct($postArray);
 	}
 
-	public function permalink() {
+	public function permalink($leaveName = false) {
 		if (!empty($this->permalink)) {
 			return $this->permalink;
 		}
-		return parent::permalink();
+		return parent::permalink($leaveName);
 	}
 
 	/**
