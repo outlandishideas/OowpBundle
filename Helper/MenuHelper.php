@@ -44,7 +44,7 @@ class MenuHelper extends Helper {
 		);
 		$html = '';
 		foreach ($posts as $post) {
-			$html .= $this->templating->render('OutlandishOowpBundle:Helper:menuItem.html.php', array(
+			$html .= $this->templating->render('OutlandishOowpBundle:Helper:menuItem.html.twig', array(
 				'post'=> $post,
 				'queryArgs' => $queryArgs,
 				'menuArgs' => (object)$menuArgs
