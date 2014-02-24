@@ -7,12 +7,11 @@ namespace Outlandish\OowpBundle\Helper;
 use Outlandish\OowpBundle\Manager\QueryManager;
 use Outlandish\OowpBundle\Manager\PostManager;
 use Outlandish\OowpBundle\PostType\Post;
-use Symfony\Bundle\FrameworkBundle\Templating\PhpEngine;
 use Symfony\Component\Templating\Helper\Helper;
 
 class MenuHelper extends Helper {
 
-	public function __construct(QueryManager $queryManager, PostManager $postManager, PhpEngine $template) {
+	public function __construct(QueryManager $queryManager, PostManager $postManager, $template) {
 		$this->queryManager = $queryManager;
 		$this->postManager = $postManager;
 		$this->templating = $template;
