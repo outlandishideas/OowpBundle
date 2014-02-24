@@ -1,0 +1,24 @@
+{% set classes = ["page_item", "page-item-"] %}
+{% if post.isCurrentPage %}{% set classes = classes | merge(['current_page_item']) %}{% endif %}
+{% if post.isCurrentPageParent %}{% set classes = classes | merge(['current_page_parent']) %}{% endif %}
+{% if post.isCurrentPageAncestor %}{% set classes = classes | merge(['current_page_ancestor']) %}{% endif %}
+
+{% if not current_depth %}{% set current_depth = menuArgs.current_depth %}{% endif %}
+
+<li class="{{ classes|join(" ") }}">
+    <a href="{{ post.permalink() }}">{{ post.title() }}</a>
+
+    {% if ( current_depth+1 < menuArgs.max_depth ) or not menuArgs.max_depth %}
+        {% set children = post.children(queryArgs) %}
+        {% if children.post_count > 0 %}
+            <ul class='children'>
+                {% set current_depth = current_depth + 1 %}
+                {% for child in children %}
+                    {% include "OutlandishOowpBundle:Helper:menuItem.html.twig" with { post: child, queryArgs: queryArgs, menuArgs: menuArgs, current_depth: current_depth } %}
+                {% endfor %}
+                {% set current_depth = current_depth - 1 %}
+            </ul>
+        {% endif %}
+    {% endif %}
+
+</li>
