@@ -6,7 +6,7 @@
 {% if not current_depth %}{% set current_depth = menuArgs.current_depth %}{% endif %}
 
 <li class="{{ classes|join(" ") }}">
-    <a href="{{ post.permalink() }}">{{ post.title() }}</a>
+    <a href="{{ post.permalink() }}">{{ post.title() | raw }}</a>
 
     {% if ( current_depth+1 < menuArgs.max_depth ) or not menuArgs.max_depth %}
         {% set children = post.children(queryArgs) %}
