@@ -54,3 +54,8 @@ services:
     tags:
       - name: templating.helper
         alias: wp
+
+  outlandish_oowp.twig.layout_extension:
+    class: Outlandish\OowpBundle\Twig\LayoutExtension
+    tags:
+      - name: twig.extension
