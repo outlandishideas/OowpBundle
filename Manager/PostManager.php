@@ -102,11 +102,14 @@ class PostManager {
 			$args['labels'] = self::generateLabels($class::friendlyName(), $class::friendlyNamePlural());
 			$args['rewrite']['slug'] = $postType;
 			$args = $class::getRegistrationArgs($args);
-			register_post_type($postType, $args);
-			$this->postTypeMapping[$postType] = $class;
-			add_filter("manage_edit-{$postType}_columns", "$class::addCustomAdminColumns_internal");
-			add_action("manage_{$postType}_posts_custom_column", "$class::printCustomAdminColumn_internal", 10, 2);
-			add_action('right_now_content_table_end', "$class::addRightNowCount");
+            //if page Post Type Class exists, ignore it when registering posts
+            if ($postType != 'page') {
+                register_post_type($postType, $args);
+                add_filter("manage_edit-{$postType}_columns", "$class::addCustomAdminColumns_internal");
+                add_action("manage_{$postType}_posts_custom_column", "$class::printCustomAdminColumn_internal", 10, 2);
+                add_action('right_now_content_table_end', "$class::addRightNowCount");
+            }
+            $this->postTypeMapping[$postType] = $class;
 
 		}
 	}
