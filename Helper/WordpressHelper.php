@@ -57,7 +57,7 @@ class WordpressHelper extends Helper {
 	 */
 	public function assetUrl($relativePath = '') {
 		$relativePath = '/' . ltrim($relativePath, '/');
-		return get_template_directory_uri() . $relativePath;
+		return $this->siteURL() . $relativePath;
 	}
 
 	public function imageUrl($fileName) {
@@ -81,7 +81,7 @@ class WordpressHelper extends Helper {
 	}
 
 	public function directory($path = '') {
-		return get_stylesheet_directory() . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
+		return $this->siteURL() . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
 	}
 
 	public function siteTitle() {
