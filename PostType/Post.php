@@ -162,6 +162,14 @@ abstract class Post
 	public $filter;
 
 	/**
+	 * Menu Icon used for setting post type icon using Dashicons, eg. 'dashicons-groups'
+	 * http://melchoyce.github.io/dashicons/
+	 *
+	 * @var bool
+	 */
+	public static $menu_icon = false;
+
+	/**
 	 * Private variable used by post formats to cache parsed content.
 	 *
 	 * @since 3.6.0
@@ -910,6 +918,12 @@ abstract class Post
 	 * @return mixed array of arguments used by register_post
 	 */
 	static function getRegistrationArgs($defaults) {
+
+		// Adds menu icon using the $menu_icon property if set
+		if ( static::$menu_icon ) {
+			$defaults['menu_icon'] = static::$menu_icon;
+		}
+
 		return $defaults;
 	}
 
