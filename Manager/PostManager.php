@@ -47,6 +47,9 @@ class PostManager {
 			//look for classes in PostType subnamespace
 			if (file_exists($bundle->getPath() . '/PostType')) {
 				foreach ($finder->files()->in($bundle->getPath() . '/PostType')->name('*.php') as $file) {
+                    //file's path does not include bundle namespace, ignore file
+                    //this fixes issue with child bundle including reference to parent bundle's files
+                    if(!strpos($file->getPath(), $bundle->getNamespace())) continue;
 					$class = $bundle->getNamespace() . '\\PostType\\' . $file->getBasename('.php');
 
 					//ignore abstract classes
