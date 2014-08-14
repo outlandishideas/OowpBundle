@@ -395,7 +395,7 @@ abstract class Post
 
 	public static function getConnectionName($targetType) {
 		// todo: move to another class
-		$types = array($targetType, self::postType());
+		$types = array($targetType, static::postType());
 		sort($types);
 		return implode('_', $types);
 	}
@@ -734,9 +734,10 @@ abstract class Post
 	 */
 	public static function connectedPostTypes()
 	{
+        $postType = static::postType();
 		// todo: move to another class
 		global $_registeredConnections;
-		return isset($_registeredConnections[self::postType()]) ? $_registeredConnections[self::postType()] : array();
+		return isset($_registeredConnections[$postType]) ? $_registeredConnections[$postType] : array();
 	}
 
 	/**
@@ -1042,7 +1043,7 @@ abstract class Post
 	{
 		if (!function_exists('p2p_register_connection_type'))
 			return;
-		$postType = (string)self::postType();
+		$postType = (string)static::postType();
 
 		//register this connection globally so that we can find out about it later
 		global $_registeredConnections;
@@ -1058,7 +1059,7 @@ abstract class Post
 		$_registeredConnections[$targetPostType][] = $postType;
 		$_registeredConnections[$postType][] = $targetPostType;
 
-		$types = array($targetPostType, self::postType());
+		$types = array($targetPostType, static::postType());
 		sort($types);
 
 		$connection_name = self::getConnectionName($targetPostType);
