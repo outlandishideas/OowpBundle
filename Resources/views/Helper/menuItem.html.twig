@@ -1,4 +1,4 @@
-{% set classes = ["page_item", "page-item-"] %}
+{% set classes = ["page_item", "page-item-" ~ post.ID] %}
 {% if post.isCurrentPage %}{% set classes = classes | merge(['current_page_item']) %}{% endif %}
 {% if post.isCurrentPageParent %}{% set classes = classes | merge(['current_page_parent']) %}{% endif %}
 {% if post.isCurrentPageAncestor %}{% set classes = classes | merge(['current_page_ancestor']) %}{% endif %}

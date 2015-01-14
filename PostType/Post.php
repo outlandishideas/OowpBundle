@@ -705,7 +705,14 @@ abstract class Post
 		foreach($this->childPostTypes() as $postType=>$class){
 			foreach ($postTypes as $p) {
 				if ($p == 'any' || ($p != 'none' && $p == $postType)) {
-					$rootsQuery = self::$queryManager->query(array('post_parent' => self::postTypeParentId()));
+					$childrenQueryArgs = array('post_type' => $postType, 'post_parent' => 0);
+					if (isset($queryArgs['orderby'])) {
+						$childrenQueryArgs['orderby'] = $queryArgs['orderby'];
+					}
+					if (isset($queryArgs['order'])) {
+						$childrenQueryArgs['order'] = $queryArgs['order'];
+					}
+					$rootsQuery = self::$queryManager->query($childrenQueryArgs);
 					$posts = array_merge($posts, $rootsQuery->posts);
 				}
 			}
