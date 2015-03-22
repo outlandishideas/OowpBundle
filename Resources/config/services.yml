@@ -35,6 +35,14 @@ services:
         event: outlandish_routemaster.wp_init
         method: onInit
 
+  outlandish_oowp.listener.wordpress_loader:
+      class: Outlandish\OowpBundle\EventListener\WordpressLoader
+      arguments: [@kernel]
+      tags:
+          - name: kernel.event_listener
+            event: console.command
+            method: loadWordpress
+
   outlandish_oowp.helper.menu:
     class: Outlandish\OowpBundle\Helper\MenuHelper
     arguments: [@outlandish_routemaster.query_manager, @outlandish_oowp.post_manager, @templating]
@@ -59,3 +67,7 @@ services:
     class: Outlandish\OowpBundle\Twig\LayoutExtension
     tags:
       - name: twig.extension
+
+  # wraps wordpress functions
+  outlandish_oowp.wordpress.wrapper:
+    class: Outlandish\AcadOowpBundle\Wordpress\WordpressWrapper
