@@ -31,6 +31,6 @@ class WordpressLoader
     public function loadWordpress()
     {
         $wpLoad = $this->kernel->getRootDir() . "/../web/wp-load.php";
-        require $wpLoad;
+        include $wpLoad;
     }
 }
